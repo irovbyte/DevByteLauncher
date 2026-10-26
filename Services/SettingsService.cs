@@ -27,6 +27,10 @@ public static class SettingsService
                     {
                         settings.InstallationPath = GetDefaultInstallationPath();
                     }
+                    if (string.IsNullOrWhiteSpace(settings.SelectedShaderPack))
+                    {
+                        settings.SelectedShaderPack = "ComplementaryReimagined_r5.9.3.zip";
+                    }
                     return settings;
                 }
             }

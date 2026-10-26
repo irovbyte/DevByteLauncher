@@ -203,24 +203,47 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public void LoadShaderState()
     {
         var (isEnabled, selectedPack) = ShaderService.LoadShaderState(Settings.InstallationPath);
-        ShadersEnabled = isEnabled;
-        SelectedShaderPack = selectedPack;
+        if (string.IsNullOrWhiteSpace(selectedPack))
+        {
+            selectedPack = !string.IsNullOrWhiteSpace(Settings.SelectedShaderPack)
+                ? Settings.SelectedShaderPack
+                : ShaderService.DefaultShader;
+        }
+
+        var packs = ShaderService.GetAvailableShaderPacks(Settings.InstallationPath);
+        if (!packs.Contains(selectedPack, StringComparer.OrdinalIgnoreCase))
+        {
+            packs.Insert(0, selectedPack);
+        }
+
         AvailableShaderPacks.Clear();
-        foreach (var pack in ShaderService.GetAvailableShaderPacks(Settings.InstallationPath))
+        foreach (var pack in packs)
         {
             AvailableShaderPacks.Add(pack);
         }
+
+        ShadersEnabled = isEnabled;
+        SelectedShaderPack = selectedPack;
+        Settings.SelectedShaderPack = selectedPack;
+        Settings.ShadersEnabled = isEnabled;
+        ShaderService.SaveShaderState(Settings.InstallationPath, isEnabled, selectedPack);
     }
 
     partial void OnShadersEnabledChanged(bool value)
     {
         Settings.ShadersEnabled = value;
-        ShaderService.SaveShaderState(Settings.InstallationPath, value, SelectedShaderPack);
+        var pack = !string.IsNullOrWhiteSpace(SelectedShaderPack) ? SelectedShaderPack : ShaderService.DefaultShader;
+        ShaderService.SaveShaderState(Settings.InstallationPath, value, pack);
         SaveSettings();
     }
 
     partial void OnSelectedShaderPackChanged(string value)
     {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return;
+        }
+
         Settings.SelectedShaderPack = value;
         ShaderService.SaveShaderState(Settings.InstallationPath, ShadersEnabled, value);
         SaveSettings();

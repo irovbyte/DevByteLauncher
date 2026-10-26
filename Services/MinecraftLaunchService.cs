@@ -72,7 +72,10 @@ public static class MinecraftLaunchService
 
         progress?.Report(("Синхронизация шейдеров и графических оптимизаций...", 95));
         await ShaderService.EnsureShadersAndModsAsync(settings.InstallationPath, progress, cancellationToken);
-        ShaderService.SaveShaderState(settings.InstallationPath, settings.ShadersEnabled, settings.SelectedShaderPack);
+        var activePack = !string.IsNullOrWhiteSpace(settings.SelectedShaderPack)
+            ? settings.SelectedShaderPack
+            : ShaderService.DefaultShader;
+        ShaderService.SaveShaderState(settings.InstallationPath, settings.ShadersEnabled, activePack);
 
         progress?.Report(("Запуск процесса Minecraft Fabric...", 98));
         var process = await launcher.BuildProcessAsync(versionName, launchOption, cancellationToken);
@@ -82,6 +85,8 @@ public static class MinecraftLaunchService
         {
             AutoFlush = true
         };
+
+        var windowReadyTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         process.StartInfo.RedirectStandardOutput = true;
         process.StartInfo.RedirectStandardError = true;
@@ -93,6 +98,14 @@ public static class MinecraftLaunchService
             {
                 logWriter.WriteLine(args.Data);
                 onLogReceived?.Invoke(args.Data);
+
+                if (args.Data.Contains("Backend library: LWJGL", StringComparison.OrdinalIgnoreCase) ||
+                    args.Data.Contains("OpenAL initialized", StringComparison.OrdinalIgnoreCase) ||
+                    args.Data.Contains("OpenGL Renderer:", StringComparison.OrdinalIgnoreCase) ||
+                    args.Data.Contains("Connecting to", StringComparison.OrdinalIgnoreCase))
+                {
+                    _ = windowReadyTcs.TrySetResult(true);
+                }
             }
         };
 
@@ -108,6 +121,7 @@ public static class MinecraftLaunchService
         process.EnableRaisingEvents = true;
         process.Exited += (_, _) =>
         {
+            _ = windowReadyTcs.TrySetResult(false);
             try
             {
                 logWriter.Flush();
@@ -122,8 +136,55 @@ public static class MinecraftLaunchService
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
 
+        progress?.Report(("Ожидание открытия окна Minecraft...", 99));
+
+        await WaitForWindowReadyAsync(process, windowReadyTcs, cancellationToken);
+
+        if (process.HasExited)
+        {
+            throw new InvalidOperationException($"Процесс Minecraft неожиданно завершился (код: {process.ExitCode}). Проверьте лог запуска.");
+        }
+
         progress?.Report(("Minecraft успешно запущен! Приятной игры.", 100));
         return process;
+    }
+
+    private static async Task WaitForWindowReadyAsync(
+        Process process,
+        TaskCompletionSource<bool> windowReadyTcs,
+        CancellationToken cancellationToken)
+    {
+        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(25));
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+
+        try
+        {
+            while (!process.HasExited && !linkedCts.Token.IsCancellationRequested)
+            {
+                if (windowReadyTcs.Task.IsCompleted)
+                {
+                    return;
+                }
+
+                try
+                {
+                    process.Refresh();
+                    if (process.MainWindowHandle != IntPtr.Zero)
+                    {
+                        _ = windowReadyTcs.TrySetResult(true);
+                        return;
+                    }
+                }
+                catch
+                {
+                }
+
+                await Task.Delay(200, linkedCts.Token);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
     }
 
     private static async Task EnsureFabricProfileAsync(

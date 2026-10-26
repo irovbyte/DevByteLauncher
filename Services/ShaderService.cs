@@ -51,10 +51,10 @@ public static class ShaderService
         {
         }
 
-        return (isEnabled, selectedPack);
+        return (isEnabled, string.IsNullOrWhiteSpace(selectedPack) ? DefaultShader : selectedPack);
     }
 
-    public static void SaveShaderState(string installationPath, bool isEnabled, string selectedPack)
+    public static void SaveShaderState(string installationPath, bool isEnabled, string? selectedPack)
     {
         try
         {
@@ -62,11 +62,46 @@ public static class ShaderService
             _ = Directory.CreateDirectory(configDir);
             var configPath = Path.Combine(configDir, "iris.properties");
 
+            var packToSave = !string.IsNullOrWhiteSpace(selectedPack)
+                ? selectedPack
+                : DefaultShader;
+
+            var existingProperties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["enableShaders"] = isEnabled.ToString().ToLowerInvariant(),
+                ["shaderPack"] = packToSave
+            };
+
+            if (File.Exists(configPath))
+            {
+                foreach (var line in File.ReadAllLines(configPath))
+                {
+                    var trimmed = line.Trim();
+                    if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith('#'))
+                    {
+                        continue;
+                    }
+                    var eq = trimmed.IndexOf('=');
+                    if (eq > 0)
+                    {
+                        var key = trimmed[..eq].Trim();
+                        var val = trimmed[(eq + 1)..].Trim();
+                        if (!existingProperties.ContainsKey(key))
+                        {
+                            existingProperties[key] = val;
+                        }
+                    }
+                }
+            }
+
             var lines = new List<string>
             {
-                $"enableShaders={isEnabled.ToString().ToLowerInvariant()}",
-                $"shaderPack={selectedPack}"
+                "#This file stores configuration options for Iris, such as the currently active shaderpack"
             };
+            foreach (var kvp in existingProperties)
+            {
+                lines.Add($"{kvp.Key}={kvp.Value}");
+            }
 
             File.WriteAllLines(configPath, lines);
         }
@@ -84,7 +119,11 @@ public static class ShaderService
             var files = Directory.GetFiles(shaderpacksDir, "*.zip");
             foreach (var file in files)
             {
-                result.Add(Path.GetFileName(file));
+                var name = Path.GetFileName(file);
+                if (!string.IsNullOrWhiteSpace(name))
+                {
+                    result.Add(name);
+                }
             }
         }
 
