@@ -77,54 +77,50 @@ public static class MinecraftLaunchService
         progress?.Report(("Запуск процесса Minecraft Fabric...", 98));
         var process = await launcher.BuildProcessAsync(versionName, launchOption, cancellationToken);
 
-        if (!settings.CloseOnLaunch)
+        var clientLogPath = Path.Combine(logsDir, "launcher-client.log");
+        var logWriter = new StreamWriter(new FileStream(clientLogPath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
         {
-            var clientLogPath = Path.Combine(logsDir, "launcher-client.log");
-            var logWriter = new StreamWriter(new FileStream(clientLogPath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
+            AutoFlush = true
+        };
+
+        process.StartInfo.RedirectStandardOutput = true;
+        process.StartInfo.RedirectStandardError = true;
+        process.StartInfo.UseShellExecute = false;
+
+        process.OutputDataReceived += (_, args) =>
+        {
+            if (args.Data != null)
             {
-                AutoFlush = true
-            };
+                logWriter.WriteLine(args.Data);
+                onLogReceived?.Invoke(args.Data);
+            }
+        };
 
-            process.StartInfo.RedirectStandardOutput = true;
-            process.StartInfo.RedirectStandardError = true;
-            process.StartInfo.UseShellExecute = false;
-
-            process.OutputDataReceived += (_, args) =>
+        process.ErrorDataReceived += (_, args) =>
+        {
+            if (args.Data != null)
             {
-                if (args.Data != null)
-                {
-                    logWriter.WriteLine(args.Data);
-                    onLogReceived?.Invoke(args.Data);
-                }
-            };
+                logWriter.WriteLine("[ERROR] " + args.Data);
+                onLogReceived?.Invoke("[ERROR] " + args.Data);
+            }
+        };
 
-            process.ErrorDataReceived += (_, args) =>
-            {
-                if (args.Data != null)
-                {
-                    logWriter.WriteLine("[ERROR] " + args.Data);
-                    onLogReceived?.Invoke("[ERROR] " + args.Data);
-                }
-            };
-
-            _ = process.Start();
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
-
-            process.EnableRaisingEvents = true;
-            process.Exited += (_, _) =>
+        process.EnableRaisingEvents = true;
+        process.Exited += (_, _) =>
+        {
+            try
             {
                 logWriter.Flush();
                 logWriter.Dispose();
-            };
-        }
-        else
-        {
-            process.StartInfo.RedirectStandardOutput = false;
-            process.StartInfo.RedirectStandardError = false;
-            process.StartInfo.UseShellExecute = false;
-            _ = process.Start();
-        }
+            }
+            catch
+            {
+            }
+        };
+
+        _ = process.Start();
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
 
         progress?.Report(("Minecraft успешно запущен! Приятной игры.", 100));
         return process;

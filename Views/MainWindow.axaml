@@ -94,6 +94,29 @@
             <Setter Property="Foreground" Value="#777777" />
         </Style>
 
+        <Style Selector="Button.StopBtn">
+            <Setter Property="Background" Value="#c42b1c" />
+            <Setter Property="Foreground" Value="#ffffff" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="24,12" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.15" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.08" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.StopBtn:pointerover">
+            <Setter Property="Background" Value="#b71c1c" />
+        </Style>
+        <Style Selector="Button.StopBtn:pressed">
+            <Setter Property="Background" Value="#880e4f" />
+            <Setter Property="RenderTransform" Value="scale(0.98)" />
+        </Style>
+
         <Style Selector="Button.SecondaryBtn">
             <Setter Property="Background" Value="#323232" />
             <Setter Property="Foreground" Value="#ffffff" />
@@ -747,14 +770,33 @@
                                         Classes="PlayBtn"
                                         Command="{Binding PlayCommand}"
                                         IsEnabled="{Binding CanPlay}"
+                                        IsVisible="{Binding !IsGameRunning}"
                                         ToolTip.Tip="{Binding PlayButtonToolTip}">
                                         <StackPanel Orientation="Horizontal" Spacing="10">
-                                            <ic:SymbolIcon FontSize="18" Symbol="Play" />
+                                            <ic:SymbolIcon FontSize="18" Symbol="{Binding PlayButtonSymbol}" />
                                             <TextBlock
                                                 VerticalAlignment="Center"
                                                 FontSize="15"
                                                 FontWeight="Bold"
-                                                Text="И Г Р А Т Ь" />
+                                                Text="{Binding PlayButtonText}" />
+                                        </StackPanel>
+                                    </Button>
+
+                                    <Button
+                                        Grid.Row="0"
+                                        Grid.Column="1"
+                                        VerticalAlignment="Center"
+                                        Classes="StopBtn"
+                                        Command="{Binding StopGameCommand}"
+                                        IsVisible="{Binding IsGameRunning}"
+                                        ToolTip.Tip="Остановить запущенный процесс Minecraft">
+                                        <StackPanel Orientation="Horizontal" Spacing="10">
+                                            <ic:SymbolIcon FontSize="18" Symbol="DismissCircle" />
+                                            <TextBlock
+                                                VerticalAlignment="Center"
+                                                FontSize="15"
+                                                FontWeight="Bold"
+                                                Text="ЗАКРЫТЬ ИГРУ" />
                                         </StackPanel>
                                     </Button>
 
@@ -1444,22 +1486,27 @@
                             </Border>
 
                             <Border Padding="18" Classes="Card">
-                                <StackPanel Spacing="10">
-                                    <TextBlock
-                                        FontSize="13"
-                                        FontWeight="SemiBold"
-                                        Foreground="#ffffff"
-                                        Text="Поведение при запуске Minecraft" />
-                                    <CheckBox
-                                        Content="Закрывать лаунчер при успешном старте игры"
-                                        FontSize="12"
-                                        Foreground="#cccccc"
-                                        IsChecked="{Binding CloseOnLaunch}" />
-                                    <TextBlock
-                                        FontSize="11"
-                                        Foreground="#777777"
-                                        Text="Освобождает оперативную память и фоновые ресурсы системы для максимальной плавности игры." />
-                                </StackPanel>
+                                <Grid ColumnDefinitions="*, Auto">
+                                    <StackPanel Grid.Column="0" Spacing="4">
+                                        <TextBlock
+                                            FontSize="13"
+                                            FontWeight="SemiBold"
+                                            Foreground="#ffffff"
+                                            Text="Скрывать лаунчер при запуске игры" />
+                                        <TextBlock
+                                            FontSize="11"
+                                            Foreground="#888888"
+                                            Text="Скрывает лаунчер на время игры и автоматически возвращает его после закрытия Minecraft. Если выключено — лаунчер всегда остаётся открытым."
+                                            TextWrapping="Wrap" />
+                                    </StackPanel>
+                                    <ToggleSwitch
+                                        Grid.Column="1"
+                                        Margin="16,0,0,0"
+                                        VerticalAlignment="Center"
+                                        IsChecked="{Binding CloseOnLaunch}"
+                                        OnContent=""
+                                        OffContent="" />
+                                </Grid>
                             </Border>
 
                             <Border Padding="18" Classes="Card">

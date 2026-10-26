@@ -3,6 +3,7 @@ namespace DevByteLauncher.ViewModels;
 public partial class MainViewModel : ViewModelBase, IDisposable
 {
     private readonly CancellationTokenSource _cts = new();
+    private Process? _gameProcess;
 
     [ObservableProperty]
     public partial AppSettings Settings { get; set; }
@@ -24,19 +25,32 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanPlay))]
     [NotifyPropertyChangedFor(nameof(PlayButtonToolTip))]
+    [NotifyPropertyChangedFor(nameof(PlayButtonText))]
+    [NotifyPropertyChangedFor(nameof(PlayButtonSymbol))]
     public partial bool IsBusy { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanPlay))]
+    [NotifyPropertyChangedFor(nameof(PlayButtonToolTip))]
+    [NotifyPropertyChangedFor(nameof(PlayButtonText))]
+    [NotifyPropertyChangedFor(nameof(PlayButtonSymbol))]
+    public partial bool IsGameRunning { get; set; }
 
     public bool IsNicknameValid => !string.IsNullOrWhiteSpace(Nickname);
 
-    public bool CanPlay => !IsBusy && IsNicknameValid;
+    public bool CanPlay => !IsBusy && !IsGameRunning && IsNicknameValid;
 
     public string DisplayNameText => string.IsNullOrWhiteSpace(Nickname) ? "Игрок не указан" : Nickname;
 
     public string NicknameBorderBrush => IsNicknameValid ? "#3a3a3a" : "#f87171";
 
+    public string PlayButtonText => IsBusy ? "ЗАГРУЗКА..." : "И Г Р А Т Ь";
+
+    public string PlayButtonSymbol => IsBusy ? "ArrowSync" : "Play";
+
     public string PlayButtonToolTip => !IsNicknameValid
         ? "Введите никнейм перед запуском игры"
-        : (IsBusy ? "Выполняется запуск..." : "Запустить Minecraft Fabric 1.21.1");
+        : (IsBusy ? "Выполняется запуск игры..." : (IsGameRunning ? "Minecraft запущен" : "Запустить Minecraft Fabric 1.21.1"));
 
     [ObservableProperty]
     public partial bool IsProgressVisible { get; set; }
@@ -381,12 +395,21 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     public async Task CopyDeviceCodeAsync()
     {
-        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop &&
-            desktop.MainWindow?.Clipboard is { } clipboard)
+        try
         {
-            await clipboard.SetTextAsync(DeviceCode);
-            StatusMessage = "Код скопирован в буфер обмена!";
+            if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop &&
+                desktop.MainWindow?.Clipboard is { } clipboard)
+            {
+                await clipboard.SetTextAsync(DeviceCode);
+                StatusMessage = "Код скопирован в буфер обмена!";
+                return;
+            }
         }
+        catch
+        {
+        }
+
+        StatusMessage = "Код отображен на экране.";
     }
 
     [RelayCommand]
@@ -578,9 +601,42 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     }
 
     [RelayCommand]
+    public void StopGame()
+    {
+        if (_gameProcess is { HasExited: false } proc)
+        {
+            try
+            {
+                AddLog($"[{DateTime.Now:HH:mm:ss}] Запрос на остановку Minecraft (PID: {proc.Id})...");
+                StatusMessage = "Остановка Minecraft...";
+                _ = proc.CloseMainWindow();
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        using var timeoutCts = new CancellationTokenSource(3000);
+                        await proc.WaitForExitAsync(timeoutCts.Token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        if (!proc.HasExited)
+                        {
+                            proc.Kill(entireProcessTree: true);
+                        }
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                AddLog($"[{DateTime.Now:HH:mm:ss}] [ERROR] Не удалось остановить процесс Minecraft: {ex.Message}");
+            }
+        }
+    }
+
+    [RelayCommand]
     public async Task PlayAsync()
     {
-        if (IsBusy)
+        if (IsBusy || IsGameRunning)
         {
             return;
         }
@@ -614,37 +670,67 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             _ = await ModSyncService.SyncModsAsync(Settings.InstallationPath, manifest, progress);
 
             StatusMessage = "Подготовка к запуску Fabric 1.21.1...";
-            _ = await MinecraftLaunchService.LaunchGameAsync(Settings, progress, AddLog, _cts.Token);
+            var process = await MinecraftLaunchService.LaunchGameAsync(Settings, progress, AddLog, _cts.Token);
 
+            _gameProcess = process;
+            IsGameRunning = true;
+            IsBusy = false;
+            IsProgressVisible = false;
             StatusMessage = "Игра запущена! Приятной игры на DevByte Homelab.";
-            AddLog($"[{DateTime.Now:HH:mm:ss}] Клиент Minecraft успешно стартовал.");
-            await LoadModsListAsync();
+            AddLog($"[{DateTime.Now:HH:mm:ss}] Клиент Minecraft успешно стартовал (PID: {process.Id}).");
+            _ = LoadModsListAsync();
+
+            process.EnableRaisingEvents = true;
+            process.Exited += (_, _) => Dispatcher.UIThread.Post(() =>
+            {
+                _gameProcess = null;
+                IsGameRunning = false;
+                IsBusy = false;
+                IsProgressVisible = false;
+                StatusMessage = "Minecraft закрыт. Готов к новому запуску.";
+                AddLog($"[{DateTime.Now:HH:mm:ss}] [SYSTEM] Minecraft закрыт. Лаунчер готов к игре.");
+
+                if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop &&
+                    desktop.MainWindow is { } window)
+                {
+                    window.Show();
+                    if (window.WindowState == WindowState.Minimized)
+                    {
+                        window.WindowState = WindowState.Normal;
+                    }
+                    window.Activate();
+                    _ = window.Focus();
+                }
+            });
 
             if (Settings.CloseOnLaunch)
             {
-                AddLog($"[{DateTime.Now:HH:mm:ss}] Авто-закрытие лаунчера при запуске игры...");
+                AddLog($"[{DateTime.Now:HH:mm:ss}] Скрытие окна лаунчера на время игры...");
                 await Task.Delay(1500, _cts.Token);
                 Dispatcher.UIThread.Post(() =>
                 {
-                    if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+                    if (IsGameRunning && Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
                     {
-                        desktop.Shutdown();
-                    }
-                    else
-                    {
-                        Environment.Exit(0);
+                        desktop.MainWindow?.Hide();
                     }
                 });
             }
         }
         catch (Exception ex)
         {
+            IsBusy = false;
+            IsGameRunning = false;
+            IsProgressVisible = false;
             StatusMessage = $"Ошибка запуска: {ex.Message}";
             AddLog($"[{DateTime.Now:HH:mm:ss}] [ERROR] Сбой запуска: {ex.Message}");
         }
         finally
         {
-            IsBusy = false;
+            if (!IsGameRunning)
+            {
+                IsBusy = false;
+                IsProgressVisible = false;
+            }
         }
     }
 
@@ -734,6 +820,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _cts.Dispose();
         _deviceCodeCts?.Cancel();
         _deviceCodeCts?.Dispose();
+        _gameProcess?.Dispose();
         GC.SuppressFinalize(this);
     }
 }

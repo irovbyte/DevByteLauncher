@@ -9,7 +9,7 @@ internal sealed partial class Program
     private const int AttachParentProcess = -1;
 
     [STAThread]
-    public static async Task<int> Main(string[] args)
+    public static int Main(string[] args)
     {
         if (OperatingSystem.IsWindows())
         {
@@ -21,7 +21,7 @@ internal sealed partial class Program
             SynchronizationContext.SetSynchronizationContext(null);
             _ = BuildAvaloniaApp().SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(null);
-            return await Task.Run(RunSmokeTestAsync);
+            return RunSmokeTestAsync().GetAwaiter().GetResult();
         }
 
         try
