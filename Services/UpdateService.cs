@@ -12,7 +12,10 @@ public static class UpdateService
         }
     };
 
-    public const string CurrentVersion = "1.2.1";
+    public static string CurrentVersion { get; } =
+        typeof(UpdateService).Assembly.GetName().Version is { } v
+            ? $"{v.Major}.{v.Minor}.{v.Build}"
+            : "1.0.0";
     public const string RepositoryOwner = "irovbyte";
     public const string RepositoryName = "DevByteLauncher";
 
