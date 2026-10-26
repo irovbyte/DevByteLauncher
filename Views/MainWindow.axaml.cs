@@ -64,9 +64,7 @@ public partial class MainWindow : Window
 
         if (files.Count > 0 && DataContext is MainViewModel vm)
         {
-            vm.Settings.SelectedSkinPath = files[0].Path.LocalPath;
-            vm.SaveSettings();
-            vm.ReloadAvatar();
+            await vm.ChangeSkinAsync(files[0].Path.LocalPath);
         }
     }
 }

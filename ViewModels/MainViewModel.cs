@@ -129,6 +129,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         get => Settings.Nickname;
         set
         {
+            if (Settings.IsMicrosoftAuth && !string.IsNullOrWhiteSpace(Settings.Nickname) && value != Settings.Nickname)
+            {
+                return;
+            }
             Settings.Nickname = value ?? string.Empty;
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsNicknameValid));
@@ -136,9 +140,14 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             OnPropertyChanged(nameof(DisplayNameText));
             OnPropertyChanged(nameof(NicknameBorderBrush));
             OnPropertyChanged(nameof(PlayButtonToolTip));
+            OnPropertyChanged(nameof(NicknameToolTip));
             SaveSettings();
         }
     }
+
+    public string NicknameToolTip => Settings.IsMicrosoftAuth
+        ? "Никнейм привязан к вашей лицензии Microsoft и защищен от изменений"
+        : "Ваш никнейм для игры на сервере";
 
     public bool IsMicrosoftAuth
     {
@@ -185,6 +194,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _ = LoadModsListAsync();
         _ = StartPeriodicPingLoopAsync();
         _ = CheckForUpdatesAsync();
+        if (Settings.IsMicrosoftAuth)
+        {
+            _ = SyncCloudSkinAsync();
+        }
     }
 
     public void LoadShaderState()
@@ -220,6 +233,130 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     }
 
     public void ReloadAvatar() => AvatarBitmap = SkinService.LoadAvatarHead(Settings.SelectedSkinPath);
+
+    public async Task SyncCloudSkinAsync(string? explicitToken = null)
+    {
+        if (!Settings.IsMicrosoftAuth)
+        {
+            return;
+        }
+
+        try
+        {
+            var token = explicitToken;
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                var session = await AuthService.AuthenticateAsync(Settings);
+                token = session.AccessToken;
+            }
+
+            if (string.IsNullOrWhiteSpace(token) || token == "access_token")
+            {
+                return;
+            }
+
+            var (skinUrl, _) = await AuthService.GetActiveSkinAsync(token);
+            if (!string.IsNullOrWhiteSpace(skinUrl))
+            {
+                var skinsDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "DevByteLauncher", "skins");
+                _ = Directory.CreateDirectory(skinsDir);
+                var skinPath = Path.Combine(skinsDir, $"{Settings.Nickname}.png");
+                var downloaded = await AuthService.DownloadSkinAsync(skinUrl, skinPath);
+                if (downloaded)
+                {
+                    Settings.SelectedSkinPath = skinPath;
+                    SaveSettings();
+
+                    if (!string.IsNullOrWhiteSpace(Settings.InstallationPath) && Directory.Exists(Settings.InstallationPath))
+                    {
+                        var ftSkin = Path.Combine(Settings.InstallationPath, "devbyte-skin.png");
+                        try
+                        {
+                            File.Copy(skinPath, ftSkin, true);
+                        }
+                        catch
+                        {
+                        }
+                    }
+
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        ReloadAvatar();
+                        OnPropertyChanged(nameof(Settings));
+                    });
+                    AddLog($"[{DateTime.Now:HH:mm:ss}] [SKIN] Скин игрока {Settings.Nickname} успешно загружен из облака Microsoft.");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            AddLog($"[{DateTime.Now:HH:mm:ss}] [ERROR] Ошибка синхронизации скина: {ex.Message}");
+        }
+    }
+
+    public async Task ChangeSkinAsync(string newSkinFilePath)
+    {
+        if (string.IsNullOrWhiteSpace(newSkinFilePath) || !File.Exists(newSkinFilePath))
+        {
+            return;
+        }
+
+        try
+        {
+            var skinsDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "DevByteLauncher", "skins");
+            _ = Directory.CreateDirectory(skinsDir);
+            var destPath = Path.Combine(skinsDir, $"{Settings.Nickname}_custom.png");
+            File.Copy(newSkinFilePath, destPath, true);
+
+            Settings.SelectedSkinPath = destPath;
+            SaveSettings();
+
+            if (!string.IsNullOrWhiteSpace(Settings.InstallationPath) && Directory.Exists(Settings.InstallationPath))
+            {
+                var ftSkin = Path.Combine(Settings.InstallationPath, "devbyte-skin.png");
+                try
+                {
+                    File.Copy(destPath, ftSkin, true);
+                }
+                catch
+                {
+                }
+            }
+
+            ReloadAvatar();
+            OnPropertyChanged(nameof(Settings));
+            AddLog($"[{DateTime.Now:HH:mm:ss}] [SKIN] Скин успешно обновлен локально.");
+
+            if (Settings.IsMicrosoftAuth)
+            {
+                StatusMessage = "Синхронизация скина с облаком Microsoft...";
+                var session = await AuthService.AuthenticateAsync(Settings);
+                if (!string.IsNullOrWhiteSpace(session.AccessToken) && session.AccessToken != "access_token")
+                {
+                    var uploaded = await AuthService.UploadSkinToCloudAsync(session.AccessToken, destPath, "classic");
+                    if (uploaded)
+                    {
+                        StatusMessage = "Скин успешно обновлен локально и в облаке Microsoft!";
+                        AddLog($"[{DateTime.Now:HH:mm:ss}] [SKIN] Скин успешно опубликован в облаке Microsoft Mojang.");
+                    }
+                    else
+                    {
+                        StatusMessage = "Скин применен локально. Не удалось обновить в облаке Microsoft.";
+                        AddLog($"[{DateTime.Now:HH:mm:ss}] [WARN] Не удалось отправить скин в облако Microsoft.");
+                    }
+                }
+            }
+            else
+            {
+                StatusMessage = "Скин успешно обновлен!";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Ошибка смены скина: {ex.Message}";
+            AddLog($"[{DateTime.Now:HH:mm:ss}] [ERROR] Ошибка смены скина: {ex.Message}");
+        }
+    }
 
     private async Task StartPeriodicPingLoopAsync()
     {
@@ -492,11 +629,13 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                     OnPropertyChanged(nameof(AuthModeBadgeText));
                     OnPropertyChanged(nameof(CanPlay));
                     OnPropertyChanged(nameof(IsNicknameValid));
+                    OnPropertyChanged(nameof(NicknameToolTip));
                     SaveSettings();
                     ReloadAvatar();
                 });
                 AddLog($"[{DateTime.Now:HH:mm:ss}] Успешная авторизация Microsoft: {session.Username} (UUID: {session.UUID})");
                 StatusMessage = $"Вход выполнен: {session.Username}";
+                _ = SyncCloudSkinAsync(session.AccessToken);
             }
         }
         catch (OperationCanceledException)

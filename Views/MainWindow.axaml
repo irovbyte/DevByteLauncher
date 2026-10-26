@@ -1,4 +1,4 @@
-﻿<Window
+<Window
     x:Class="DevByteLauncher.Views.MainWindow"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -705,14 +705,31 @@
                                             VerticalAlignment="Center"
                                             Orientation="Horizontal"
                                             Spacing="8">
-                                            <TextBox
-                                                Width="210"
-                                                Padding="10,8"
-                                                Background="#242424"
-                                                BorderBrush="{Binding NicknameBorderBrush}"
-                                                CornerRadius="6"
-                                                PlaceholderText="Введите ваш никнейм..."
-                                                Text="{Binding Nickname}" />
+                                            <Grid ColumnDefinitions="*, Auto">
+                                                <TextBox
+                                                    Grid.Column="0"
+                                                    Width="210"
+                                                    Padding="10,8,28,8"
+                                                    Background="#242424"
+                                                    BorderBrush="{Binding NicknameBorderBrush}"
+                                                    CornerRadius="6"
+                                                    IsEnabled="{Binding !IsMicrosoftAuth}"
+                                                    IsReadOnly="{Binding IsMicrosoftAuth}"
+                                                    PlaceholderText="Введите ваш никнейм..."
+                                                    Text="{Binding Nickname}"
+                                                    ToolTip.Tip="{Binding NicknameToolTip}" />
+                                                <ic:SymbolIcon
+                                                    Grid.Column="0"
+                                                    Margin="0,0,10,0"
+                                                    HorizontalAlignment="Right"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="13"
+                                                    Foreground="#888888"
+                                                    IsHitTestVisible="False"
+                                                    IsVisible="{Binding IsMicrosoftAuth}"
+                                                    Symbol="LockClosed"
+                                                    ToolTip.Tip="{Binding NicknameToolTip}" />
+                                            </Grid>
 
                                             <Button
                                                 Padding="8,6"
