@@ -58,6 +58,12 @@ public static class SettingsService
 
     public static string GetDefaultInstallationPath()
     {
+        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
+        {
+            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            return Path.Combine(home, ".local", "share", "DevByteMC");
+        }
+
         var drives = GetFixedDrives();
 
         var nonSystemDrive = drives

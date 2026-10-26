@@ -2,14 +2,17 @@ namespace DevByteLauncher.Services;
 
 public static class AuthService
 {
-    private const string MicrosoftClientId = "00000000402b5328";
+    private const string MicrosoftClientId = "c36a9fb6-4f2a-41ff-90bd-ae7cc92031eb";
 
-    private static async Task<JELoginHandler> CreateLoginHandlerAsync()
+    private static async Task<JELoginHandler> CreateLoginHandlerAsync(Func<string, string, Task>? onDeviceCode = null)
     {
         var app = await MsalClientHelper.BuildApplicationWithCache(MicrosoftClientId);
-        var msalProvider = new MsalCodeFlowProvider(app);
+        var provider = new MsalDeviceCodeProvider(app, result =>
+            onDeviceCode != null
+                ? onDeviceCode(result.UserCode, result.VerificationUrl)
+                : Task.CompletedTask);
         var builder = new JELoginHandlerBuilder();
-        _ = builder.WithOAuthProvider(msalProvider);
+        _ = builder.WithOAuthProvider(provider);
         return builder.Build();
     }
 
@@ -24,8 +27,6 @@ public static class AuthService
             }
             catch
             {
-                var handler = await CreateLoginHandlerAsync();
-                return await handler.AuthenticateInteractively();
             }
         }
 
@@ -33,10 +34,10 @@ public static class AuthService
         return MSession.CreateOfflineSession(nickname);
     }
 
-    public static async Task<MSession> LoginMicrosoftInteractiveAsync()
+    public static async Task<MSession> LoginMicrosoftDeviceCodeAsync(Func<string, string, Task> onDeviceCodeReceived, CancellationToken cancellationToken = default)
     {
-        var handler = await CreateLoginHandlerAsync();
-        return await handler.AuthenticateInteractively();
+        var handler = await CreateLoginHandlerAsync(onDeviceCodeReceived);
+        return await handler.AuthenticateInteractively(cancellationToken);
     }
 
     public static async Task SignoutMicrosoftAsync()

@@ -12,7 +12,7 @@ public static class UpdateService
         }
     };
 
-    public const string CurrentVersion = "1.2.0";
+    public const string CurrentVersion = "1.2.1";
     public const string RepositoryOwner = "irovbyte";
     public const string RepositoryName = "DevByteLauncher";
 
@@ -102,7 +102,11 @@ public static class UpdateService
                     }
 
                     var assetName = assetNameEl.GetString() ?? string.Empty;
-                    if (assetName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                    var isMatch = OperatingSystem.IsWindows()
+                        ? assetName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
+                        : (assetName.Contains("linux-x64", StringComparison.OrdinalIgnoreCase) && !assetName.EndsWith(".tar.gz", StringComparison.OrdinalIgnoreCase));
+
+                    if (isMatch)
                     {
                         info.DownloadUrl = dlEl.GetString() ?? string.Empty;
                         if (asset.TryGetProperty("size", out var sizeEl))
@@ -167,6 +171,19 @@ public static class UpdateService
             }
         }
 
+        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
+        {
+            try
+            {
+                File.SetUnixFileMode(tempNewExe, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                                                UnixFileMode.GroupRead | UnixFileMode.GroupExecute |
+                                                UnixFileMode.OtherRead | UnixFileMode.OtherExecute);
+            }
+            catch
+            {
+            }
+        }
+
         if (File.Exists(oldExe))
         {
             File.Delete(oldExe);
@@ -175,10 +192,23 @@ public static class UpdateService
         File.Move(currentExe, oldExe);
         File.Move(tempNewExe, currentExe);
 
+        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
+        {
+            try
+            {
+                File.SetUnixFileMode(currentExe, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                                               UnixFileMode.GroupRead | UnixFileMode.GroupExecute |
+                                               UnixFileMode.OtherRead | UnixFileMode.OtherExecute);
+            }
+            catch
+            {
+            }
+        }
+
         _ = Process.Start(new ProcessStartInfo
         {
             FileName = currentExe,
-            UseShellExecute = true
+            UseShellExecute = OperatingSystem.IsWindows()
         });
 
         Environment.Exit(0);

@@ -80,6 +80,15 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     public partial bool CloseOnLaunch { get; set; } = true;
 
+    [ObservableProperty]
+    public partial bool IsDeviceCodeDialogVisible { get; set; }
+
+    [ObservableProperty]
+    public partial string DeviceCode { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string DeviceVerificationUrl { get; set; } = "https://www.microsoft.com/link";
+
     public static string CurrentVersionText => $"v{UpdateService.CurrentVersion}";
 
     public ObservableCollection<DriveStorageInfo> Drives { get; } = [];
@@ -367,20 +376,92 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     public void ClearLogs() => ConsoleLogs.Clear();
 
+    private CancellationTokenSource? _deviceCodeCts;
+
+    [RelayCommand]
+    public async Task CopyDeviceCodeAsync()
+    {
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop &&
+            desktop.MainWindow?.Clipboard is { } clipboard)
+        {
+            await clipboard.SetTextAsync(DeviceCode);
+            StatusMessage = "Код скопирован в буфер обмена!";
+        }
+    }
+
+    [RelayCommand]
+    public void OpenVerificationUrl()
+    {
+        try
+        {
+            _ = Process.Start(new ProcessStartInfo
+            {
+                FileName = DeviceVerificationUrl,
+                UseShellExecute = true
+            });
+        }
+        catch
+        {
+        }
+    }
+
+    [RelayCommand]
+    public void CancelDeviceCodeLogin()
+    {
+        _deviceCodeCts?.Cancel();
+        IsDeviceCodeDialogVisible = false;
+        IsBusy = false;
+        StatusMessage = "Авторизация Microsoft отменена";
+    }
+
     [RelayCommand]
     public async Task LoginMicrosoftAsync()
     {
         try
         {
+            _deviceCodeCts?.Cancel();
+            _deviceCodeCts = new CancellationTokenSource();
             IsBusy = true;
             StatusMessage = "Ожидание авторизации в Microsoft...";
-            AddLog($"[{DateTime.Now:HH:mm:ss}] Запуск интерактивной авторизации Microsoft...");
+            AddLog($"[{DateTime.Now:HH:mm:ss}] Запуск авторизации Microsoft...");
 
-            var session = await AuthService.LoginMicrosoftInteractiveAsync();
+            var session = await AuthService.LoginMicrosoftDeviceCodeAsync((code, url) =>
+                Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    DeviceCode = code;
+                    DeviceVerificationUrl = url;
+                    IsDeviceCodeDialogVisible = true;
+
+                    if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop &&
+                        desktop.MainWindow?.Clipboard is { } clipboard)
+                    {
+                        try
+                        {
+                            await clipboard.SetTextAsync(code);
+                        }
+                        catch
+                        {
+                        }
+                    }
+
+                    try
+                    {
+                        _ = Process.Start(new ProcessStartInfo
+                        {
+                            FileName = url,
+                            UseShellExecute = true
+                        });
+                    }
+                    catch
+                    {
+                    }
+                }), _deviceCodeCts.Token);
+
             if (!string.IsNullOrWhiteSpace(session.Username))
             {
                 Dispatcher.UIThread.Post(() =>
                 {
+                    IsDeviceCodeDialogVisible = false;
                     Settings.Nickname = session.Username;
                     Settings.IsMicrosoftAuth = true;
                     Nickname = session.Username;
@@ -389,6 +470,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                     OnPropertyChanged(nameof(CanPlay));
                     OnPropertyChanged(nameof(IsNicknameValid));
                     SaveSettings();
+                    ReloadAvatar();
                 });
                 AddLog($"[{DateTime.Now:HH:mm:ss}] Успешная авторизация Microsoft: {session.Username} (UUID: {session.UUID})");
                 StatusMessage = $"Вход выполнен: {session.Username}";
@@ -396,17 +478,29 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         }
         catch (OperationCanceledException)
         {
-            StatusMessage = "Авторизация Microsoft отменена.";
+            Dispatcher.UIThread.Post(() =>
+            {
+                IsDeviceCodeDialogVisible = false;
+                StatusMessage = "Авторизация Microsoft отменена.";
+            });
             AddLog($"[{DateTime.Now:HH:mm:ss}] Авторизация Microsoft отменена пользователем.");
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Ошибка авторизации: {ex.Message}";
+            Dispatcher.UIThread.Post(() =>
+            {
+                IsDeviceCodeDialogVisible = false;
+                StatusMessage = $"Ошибка авторизации: {ex.Message}";
+            });
             AddLog($"[{DateTime.Now:HH:mm:ss}] [ERROR] Ошибка Microsoft: {ex.Message}");
         }
         finally
         {
-            Dispatcher.UIThread.Post(() => IsBusy = false);
+            Dispatcher.UIThread.Post(() =>
+            {
+                IsBusy = false;
+                IsDeviceCodeDialogVisible = false;
+            });
         }
     }
 
@@ -638,6 +732,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     {
         _cts.Cancel();
         _cts.Dispose();
+        _deviceCodeCts?.Cancel();
+        _deviceCodeCts?.Dispose();
         GC.SuppressFinalize(this);
     }
 }

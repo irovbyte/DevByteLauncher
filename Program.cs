@@ -11,7 +11,10 @@ internal sealed partial class Program
     [STAThread]
     public static async Task<int> Main(string[] args)
     {
-        _ = AttachConsole(AttachParentProcess);
+        if (OperatingSystem.IsWindows())
+        {
+            _ = AttachConsole(AttachParentProcess);
+        }
 
         if (args.Length > 0 && args[0] == "--smoke-test")
         {

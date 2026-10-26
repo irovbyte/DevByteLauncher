@@ -9,7 +9,7 @@ on:
       tag_name:
         description: 'Release Tag'
         required: false
-        default: 'v1.1.0'
+        default: 'v1.2.1'
 
 permissions:
   contents: write
@@ -29,14 +29,23 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore DevByteLauncher.csproj
 
-      - name: Publish single-file executable
-        run: dotnet publish DevByteLauncher.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o release
+      - name: Publish Windows executable
+        run: dotnet publish DevByteLauncher.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o release-win
+
+      - name: Publish Linux executable
+        run: |
+          dotnet publish DevByteLauncher.csproj -c Release -r linux-x64 --self-contained -p:PublishSingleFile=true -o release-linux
+          Move-Item release-linux/DevByteLauncher release-linux/DevByteLauncher-linux-x64
+          tar -czf release-linux/DevByteLauncher-linux-x64.tar.gz -C release-linux DevByteLauncher-linux-x64
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag_name || 'v1.1.0' }}
-          files: release/DevByteLauncher.exe
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag_name || 'v1.2.1' }}
+          files: |
+            release-win/DevByteLauncher.exe
+            release-linux/DevByteLauncher-linux-x64
+            release-linux/DevByteLauncher-linux-x64.tar.gz
           generate_release_notes: true
           draft: false
           prerelease: false

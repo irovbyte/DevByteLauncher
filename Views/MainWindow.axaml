@@ -1711,5 +1711,109 @@
                 </StackPanel>
             </Grid>
         </Border>
+
+        <Border
+            Grid.Row="0"
+            Grid.RowSpan="3"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            Background="#B0000000"
+            IsVisible="{Binding IsDeviceCodeDialogVisible}">
+            <Border
+                Width="460"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Background="#252525"
+                BorderBrush="#3d3d3d"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="28">
+                <StackPanel Spacing="16">
+                    <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Spacing="10">
+                        <ic:SymbolIcon
+                            VerticalAlignment="Center"
+                            FontSize="24"
+                            Foreground="#60cdff"
+                            Symbol="PersonKey" />
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            FontSize="18"
+                            FontWeight="SemiBold"
+                            Foreground="#ffffff"
+                            Text="Авторизация Microsoft" />
+                    </StackPanel>
+
+                    <TextBlock
+                        FontSize="13"
+                        Foreground="#cccccc"
+                        LineHeight="20"
+                        Text="Для входа в аккаунт Microsoft перейдите на страницу подтверждения и введите код:"
+                        TextAlignment="Center"
+                        TextWrapping="Wrap" />
+
+                    <Border
+                        HorizontalAlignment="Center"
+                        Background="#1a1a1a"
+                        BorderBrush="#60cdff"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="20,10">
+                        <SelectableTextBlock
+                            FontFamily="Cascadia Code, Consolas, Courier New, monospace"
+                            FontSize="26"
+                            FontWeight="Bold"
+                            Foreground="#60cdff"
+                            LetterSpacing="3"
+                            Text="{Binding DeviceCode}" />
+                    </Border>
+
+                    <ProgressBar
+                        Height="3"
+                        HorizontalAlignment="Stretch"
+                        Foreground="#60cdff"
+                        IsIndeterminate="True" />
+
+                    <TextBlock
+                        FontSize="12"
+                        Foreground="#888888"
+                        Text="Код скопирован в буфер обмена. Браузер уже открыт. Ожидание подтверждения..."
+                        TextAlignment="Center"
+                        TextWrapping="Wrap" />
+
+                    <Grid ColumnDefinitions="*, *" Margin="0,8,0,0">
+                        <Button
+                            Grid.Column="0"
+                            Margin="0,0,6,0"
+                            Classes="SecondaryBtn"
+                            Command="{Binding CopyDeviceCodeCommand}">
+                            <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Spacing="6">
+                                <ic:SymbolIcon FontSize="14" Foreground="#60cdff" Symbol="Copy" />
+                                <TextBlock Text="Копировать код" />
+                            </StackPanel>
+                        </Button>
+                        <Button
+                            Grid.Column="1"
+                            Margin="6,0,0,0"
+                            Classes="SecondaryBtn"
+                            Command="{Binding OpenVerificationUrlCommand}">
+                            <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Spacing="6">
+                                <ic:SymbolIcon FontSize="14" Foreground="#38bdf8" Symbol="Open" />
+                                <TextBlock Text="Открыть страницу" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <Button
+                        HorizontalAlignment="Center"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Command="{Binding CancelDeviceCodeLoginCommand}"
+                        Foreground="#aaaaaa"
+                        Padding="12,6">
+                        <TextBlock Text="Отмена" />
+                    </Button>
+                </StackPanel>
+            </Border>
+        </Border>
     </Grid>
 </Window>
