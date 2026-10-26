@@ -45,6 +45,23 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     public partial Bitmap? AvatarBitmap { get; set; }
 
+    [ObservableProperty]
+    public partial UpdateInfo? AvailableUpdate { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsUpdateAvailable { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsUpdating { get; set; }
+
+    [ObservableProperty]
+    public partial double UpdateProgress { get; set; }
+
+    [ObservableProperty]
+    public partial string UpdateStatusText { get; set; } = "Проверка обновлений...";
+
+    public static string CurrentVersionText => $"v{UpdateService.CurrentVersion}";
+
     public ObservableCollection<DriveStorageInfo> Drives { get; } = [];
     public ObservableCollection<ModItemViewModel> Mods { get; } = [];
     public ObservableCollection<string> ConsoleLogs { get; } = [];
@@ -103,6 +120,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     public MainViewModel()
     {
+        UpdateService.CleanPreviousBinary();
         Settings = SettingsService.LoadSettings();
         RefreshDrives();
         UpdateDriveSummary();
@@ -110,6 +128,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _ = RefreshServerStatusAsync();
         _ = LoadModsListAsync();
         _ = StartPeriodicPingLoopAsync();
+        _ = CheckForUpdatesAsync();
     }
 
     public void ReloadAvatar() => AvatarBitmap = SkinService.LoadAvatarHead(Settings.SelectedSkinPath);
@@ -124,7 +143,17 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     }
 
     [RelayCommand]
-    public void SelectTab(int index) => SelectedTabIndex = index;
+    public void SelectTab(object? param)
+    {
+        if (param is int i)
+        {
+            SelectedTabIndex = i;
+        }
+        else if (param != null && int.TryParse(param.ToString(), out var parsed))
+        {
+            SelectedTabIndex = parsed;
+        }
+    }
 
     [RelayCommand]
     public async Task RefreshServerStatusAsync()
@@ -401,6 +430,65 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    public async Task CheckForUpdatesAsync()
+    {
+        try
+        {
+            UpdateStatusText = "Проверка обновлений...";
+            var info = await UpdateService.CheckForUpdatesAsync(_cts.Token);
+            AvailableUpdate = info;
+            IsUpdateAvailable = info.IsAvailable;
+            if (info.IsAvailable)
+            {
+                UpdateStatusText = $"Доступна новая версия: v{info.LatestVersion}";
+                AddLog($"[{DateTime.Now:HH:mm:ss}] [UPDATER] Найдено обновление: v{info.LatestVersion} ({info.ReleaseName})");
+            }
+            else
+            {
+                UpdateStatusText = "У вас установлена последняя версия";
+            }
+        }
+        catch (Exception ex)
+        {
+            UpdateStatusText = "Ошибка при проверке обновлений";
+            AddLog($"[{DateTime.Now:HH:mm:ss}] [ERROR] Ошибка проверки обновлений: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    public void DismissUpdate() => IsUpdateAvailable = false;
+
+    [RelayCommand]
+    public async Task ApplyUpdateAsync()
+    {
+        if (AvailableUpdate == null || IsUpdating)
+        {
+            return;
+        }
+
+        try
+        {
+            IsUpdating = true;
+            UpdateStatusText = "Загрузка обновления...";
+            AddLog($"[{DateTime.Now:HH:mm:ss}] [UPDATER] Загрузка обновления v{AvailableUpdate.LatestVersion}...");
+
+            var progress = new Progress<double>(p =>
+            {
+                UpdateProgress = p;
+                UpdateStatusText = $"Загрузка обновления: {p:F0}%";
+            });
+
+            await UpdateService.ApplyUpdateAsync(AvailableUpdate, progress, _cts.Token);
+        }
+        catch (Exception ex)
+        {
+            IsUpdating = false;
+            UpdateStatusText = $"Ошибка обновления: {ex.Message}";
+            AddLog($"[{DateTime.Now:HH:mm:ss}] [ERROR] Сбой установки обновления: {ex.Message}");
         }
     }
 

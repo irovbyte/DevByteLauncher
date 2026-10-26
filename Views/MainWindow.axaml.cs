@@ -18,6 +18,8 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnWindowPointerPressed(object? sender, PointerPressedEventArgs e) => Focus();
+
     private async void OnBrowseFolderClickedAsync(object? sender, RoutedEventArgs e)
     {
         var topLevel = GetTopLevel(this);

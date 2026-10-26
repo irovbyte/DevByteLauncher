@@ -38,6 +38,16 @@ public static class ModSyncService
         var modsDir = Path.Combine(installationPath, "mods");
         _ = Directory.CreateDirectory(modsDir);
 
+        var serverOnlyBlacklist = new[] { "c2me.jar", "chunky.jar", "easyauth.jar" };
+        foreach (var badMod in serverOnlyBlacklist)
+        {
+            var badModPath = Path.Combine(modsDir, badMod);
+            if (File.Exists(badModPath))
+            {
+                File.Delete(badModPath);
+            }
+        }
+
         var totalFiles = manifest.Files.Count;
         if (totalFiles == 0)
         {
@@ -182,9 +192,9 @@ public static class ModSyncService
                 },
                 new ModManifestItem
                 {
-                    Name = "c2me.jar",
-                    Path = "mods/c2me.jar",
-                    Url = $"http://{host}:25566/download/c2me.jar"
+                    Name = "fabrictailor.jar",
+                    Path = "mods/fabrictailor.jar",
+                    Url = $"http://{host}:25566/download/fabrictailor.jar"
                 }
             ]
         };

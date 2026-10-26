@@ -23,7 +23,7 @@ public static class MinecraftLaunchService
         var launcher = new MinecraftLauncher(mcPath);
 
         const string mcVersion = "1.21.1";
-        const string fabricVersion = "0.16.9";
+        const string fabricVersion = "0.20.1";
         var versionName = $"fabric-loader-{fabricVersion}-{mcVersion}";
 
         launcher.FileProgressChanged += (_, e) =>
