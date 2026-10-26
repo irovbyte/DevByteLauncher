@@ -23,9 +23,20 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanPlay))]
+    [NotifyPropertyChangedFor(nameof(PlayButtonToolTip))]
     public partial bool IsBusy { get; set; }
 
-    public bool CanPlay => !IsBusy;
+    public bool IsNicknameValid => !string.IsNullOrWhiteSpace(Nickname);
+
+    public bool CanPlay => !IsBusy && IsNicknameValid;
+
+    public string DisplayNameText => string.IsNullOrWhiteSpace(Nickname) ? "Игрок не указан" : Nickname;
+
+    public string NicknameBorderBrush => IsNicknameValid ? "#3a3a3a" : "#f87171";
+
+    public string PlayButtonToolTip => !IsNicknameValid
+        ? "Введите никнейм перед запуском игры"
+        : (IsBusy ? "Выполняется запуск..." : "Запустить Minecraft Fabric 1.21.1");
 
     [ObservableProperty]
     public partial bool IsProgressVisible { get; set; }
@@ -95,8 +106,13 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         get => Settings.Nickname;
         set
         {
-            Settings.Nickname = value;
+            Settings.Nickname = value ?? string.Empty;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(IsNicknameValid));
+            OnPropertyChanged(nameof(CanPlay));
+            OnPropertyChanged(nameof(DisplayNameText));
+            OnPropertyChanged(nameof(NicknameBorderBrush));
+            OnPropertyChanged(nameof(PlayButtonToolTip));
             SaveSettings();
         }
     }
@@ -452,6 +468,13 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     {
         if (IsBusy)
         {
+            return;
+        }
+
+        if (!IsNicknameValid)
+        {
+            StatusMessage = "Укажите игровой никнейм перед запуском игры!";
+            AddLog($"[{DateTime.Now:HH:mm:ss}] [WARN] Ошибка запуска: никнейм игрока не указан.");
             return;
         }
 

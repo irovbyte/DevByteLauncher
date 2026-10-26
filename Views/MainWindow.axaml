@@ -230,7 +230,7 @@
                                 <Image Source="{Binding AvatarBitmap}" Width="38" Height="38" Stretch="UniformToFill" />
                             </Border>
                             <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding Nickname}" FontWeight="SemiBold" FontSize="13" Foreground="#ffffff" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding DisplayNameText}" FontWeight="SemiBold" FontSize="13" Foreground="#ffffff" TextTrimming="CharacterEllipsis" />
                                 <TextBlock Text="{Binding AuthModeBadgeText}" FontSize="11" Foreground="#4ade80" FontWeight="SemiBold" />
                             </StackPanel>
                         </Grid>
@@ -358,19 +358,53 @@
                                                 </StackPanel>
                                             </Button>
                                         </Grid>
-                                        <TextBox Text="{Binding Nickname}" 
-                                                 Width="240" 
-                                                 HorizontalAlignment="Left" 
-                                                 Padding="10,8" 
-                                                 CornerRadius="6" 
-                                                 Background="#242424" 
-                                                 BorderBrush="#3a3a3a" />
+
+                                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                            <TextBox Text="{Binding Nickname}" 
+                                                     PlaceholderText="Введите ваш никнейм..."
+                                                     Width="210" 
+                                                     Padding="10,8" 
+                                                     CornerRadius="6" 
+                                                     Background="#242424" 
+                                                     BorderBrush="{Binding NicknameBorderBrush}" />
+
+                                            <Button Classes="SecondaryBtn" 
+                                                    Padding="8,6" 
+                                                    VerticalAlignment="Center"
+                                                    Command="{Binding LoginMicrosoftCommand}"
+                                                    IsVisible="{Binding !IsMicrosoftAuth}"
+                                                    ToolTip.Tip="Войти через учетную запись Microsoft Store / Xbox Live">
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <ic:SymbolIcon Symbol="XboxController" FontSize="13" Foreground="#4ade80" />
+                                                    <TextBlock Text="Вход Microsoft" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                </StackPanel>
+                                            </Button>
+
+                                            <Button Classes="SecondaryBtn" 
+                                                    Padding="8,6" 
+                                                    VerticalAlignment="Center"
+                                                    Command="{Binding LogoutMicrosoftCommand}"
+                                                    IsVisible="{Binding IsMicrosoftAuth}"
+                                                    ToolTip.Tip="Выйти из аккаунта Microsoft и переключиться в офлайн">
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <ic:SymbolIcon Symbol="SignOut" FontSize="13" Foreground="#f87171" />
+                                                    <TextBlock Text="Выйти" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                </StackPanel>
+                                            </Button>
+                                        </StackPanel>
+
+                                        <TextBlock Text="Никнейм не может быть пустым" 
+                                                   FontSize="11" 
+                                                   Foreground="#f87171" 
+                                                   Margin="2,2,0,0" 
+                                                   IsVisible="{Binding !IsNicknameValid}" />
                                     </StackPanel>
 
                                     <Button Grid.Row="0" Grid.Column="1" 
                                             Classes="PlayBtn" 
                                             Command="{Binding PlayCommand}" 
                                             IsEnabled="{Binding CanPlay}"
+                                            ToolTip.Tip="{Binding PlayButtonToolTip}"
                                             VerticalAlignment="Center">
                                         <StackPanel Orientation="Horizontal" Spacing="10">
                                             <ic:SymbolIcon Symbol="Play" FontSize="18" />

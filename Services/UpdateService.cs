@@ -12,7 +12,7 @@ public static class UpdateService
         }
     };
 
-    public const string CurrentVersion = "1.0.0";
+    public const string CurrentVersion = "1.2.0";
     public const string RepositoryOwner = "irovbyte";
     public const string RepositoryName = "DevByteLauncher";
 
