@@ -41,12 +41,25 @@
             <Setter Property="Foreground" Value="#ffffff" />
         </Style>
 
+        <Style Selector="ScrollBar">
+            <Setter Property="IsVisible" Value="False" />
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="Width" Value="0" />
+            <Setter Property="MinWidth" Value="0" />
+        </Style>
+
         <Style Selector="Border.Card">
             <Setter Property="Background" Value="#2b2b2b" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="BorderBrush" Value="#3a3a3a" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="18" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.18" />
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.18" />
+                </Transitions>
+            </Setter>
         </Style>
 
         <Style Selector="Button.PlayBtn">
@@ -60,6 +73,7 @@
             <Setter Property="Transitions">
                 <Transitions>
                     <BrushTransition Property="Background" Duration="0:0:0.15" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.08" />
                 </Transitions>
             </Setter>
         </Style>
@@ -68,6 +82,7 @@
         </Style>
         <Style Selector="Button.PlayBtn:pressed">
             <Setter Property="Background" Value="#005a9e" />
+            <Setter Property="RenderTransform" Value="scale(0.98)" />
         </Style>
         <Style Selector="Button.PlayBtn:disabled">
             <Setter Property="Background" Value="#3a3a3a" />
@@ -81,9 +96,41 @@
             <Setter Property="BorderBrush" Value="#444444" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="14,8" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.15" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.08" />
+                </Transitions>
+            </Setter>
         </Style>
         <Style Selector="Button.SecondaryBtn:pointerover">
             <Setter Property="Background" Value="#3d3d3d" />
+            <Setter Property="BorderBrush" Value="#555555" />
+        </Style>
+        <Style Selector="Button.SecondaryBtn:pressed">
+            <Setter Property="RenderTransform" Value="scale(0.98)" />
+        </Style>
+
+        <Style Selector="Button.StatusPill">
+            <Setter Property="Background" Value="#2a2a2a" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Padding" Value="10,4" />
+            <Setter Property="BorderBrush" Value="#383838" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.15" />
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.08" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.StatusPill:pointerover">
+            <Setter Property="Background" Value="#333333" />
+            <Setter Property="BorderBrush" Value="#4d4d4d" />
+        </Style>
+        <Style Selector="Button.StatusPill:pressed">
+            <Setter Property="RenderTransform" Value="scale(0.97)" />
         </Style>
     </Window.Styles>
 
@@ -93,7 +140,7 @@
                 BorderBrush="#2f2f2f" 
                 BorderThickness="0,0,0,1"
                 Name="TitleBarArea">
-            <Grid ColumnDefinitions="Auto, *, Auto" Margin="16,0,140,0" VerticalAlignment="Center">
+            <Grid ColumnDefinitions="Auto, *" Margin="16,0,150,0" VerticalAlignment="Center">
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                     <Image Source="/Assets/launcher-mascot.png" Width="22" Height="22" VerticalAlignment="Center" />
                     <TextBlock Text="DevByte Launcher" FontWeight="SemiBold" FontSize="13" Foreground="#ffffff" VerticalAlignment="Center" />
@@ -102,26 +149,17 @@
                     </Border>
                 </StackPanel>
 
-                <StackPanel Grid.Column="1" HorizontalAlignment="Center" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                    <Border Background="#2a2a2a" CornerRadius="12" Padding="10,4" BorderBrush="#383838" BorderThickness="1">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Ellipse Width="8" Height="8" 
-                                     Fill="{Binding ServerStatus.StatusColor}" 
-                                     Name="StatusDot" />
-                            <TextBlock Text="{Binding ServerStatus.StatusBadgeText}" FontSize="11" Foreground="#c0c0c0" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-
-                <Button Grid.Column="2" 
-                        Classes="SecondaryBtn" 
-                        Padding="8,4" 
-                        FontSize="11"
+                <Button Grid.Column="1" 
+                        HorizontalAlignment="Center" 
+                        Classes="StatusPill" 
                         Command="{Binding RefreshServerStatusCommand}"
-                        ToolTip.Tip="Обновить статус сервера">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <ic:SymbolIcon Symbol="ArrowSync" FontSize="13" Foreground="#60cdff" />
-                        <TextBlock Text="Пинг" FontSize="11" VerticalAlignment="Center" />
+                        ToolTip.Tip="mc.obxodka.one:25565 • Нажмите для обновления статуса">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Ellipse Width="8" Height="8" 
+                                 Fill="{Binding ServerStatus.StatusColor}" 
+                                 Name="StatusDot" />
+                        <TextBlock Text="{Binding ServerStatus.StatusBadgeText}" FontSize="11" Foreground="#c0c0c0" VerticalAlignment="Center" />
+                        <ic:SymbolIcon Symbol="ArrowSync" FontSize="11" Foreground="#60cdff" VerticalAlignment="Center" Margin="2,0,0,0" />
                     </StackPanel>
                 </Button>
             </Grid>
@@ -202,7 +240,13 @@
 
             <Border Grid.Column="1" Background="#1e1e1e" Padding="24">
                 <Carousel SelectedIndex="{Binding SelectedTabIndex}">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <Carousel.PageTransition>
+                        <CompositePageTransition>
+                            <CrossFade Duration="0:0:0.18" />
+                            <PageSlide Duration="0:0:0.22" Orientation="Horizontal" />
+                        </CompositePageTransition>
+                    </Carousel.PageTransition>
+                    <ScrollViewer VerticalScrollBarVisibility="Hidden">
                         <StackPanel Spacing="18">
                             <Border Classes="Card" 
                                     Background="#142838" 
@@ -357,6 +401,26 @@
                                 </Grid>
                             </Border>
 
+                            <Border Classes="Card" Padding="16">
+                                <Grid ColumnDefinitions="Auto, *, Auto">
+                                    <ic:SymbolIcon Grid.Column="0" Symbol="WeatherSunny" FontSize="22" Foreground="#f59e0b" VerticalAlignment="Center" Margin="0,0,14,0" />
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="Шейдеры Iris (Графика)" FontWeight="SemiBold" FontSize="13" Foreground="#ffffff" VerticalAlignment="Center" />
+                                            <Border Background="#1f2937" CornerRadius="4" Padding="6,1" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding SelectedShaderPack}" FontSize="10" Foreground="#9ca3af" />
+                                            </Border>
+                                        </StackPanel>
+                                        <TextBlock Text="Синхронизируется с игрой (горячая клавиша K). При отключении в игре выключится автоматически." FontSize="11" Foreground="#888888" />
+                                    </StackPanel>
+                                    <ToggleSwitch Grid.Column="2" 
+                                                  IsChecked="{Binding ShadersEnabled}" 
+                                                  OnContent="Вкл" 
+                                                  OffContent="Выкл" 
+                                                  VerticalAlignment="Center" />
+                                </Grid>
+                            </Border>
+
                             <Grid ColumnDefinitions="*, *">
                                 <Border Grid.Column="0" Classes="Card" Margin="0,0,8,0">
                                     <StackPanel Spacing="8">
@@ -406,7 +470,7 @@
                         </Grid>
 
                         <Border Grid.Row="1" Classes="Card" Padding="12">
-                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <ScrollViewer VerticalScrollBarVisibility="Hidden">
                                 <ItemsControl ItemsSource="{Binding Mods}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="vm:ModItemViewModel">
@@ -443,7 +507,7 @@
                         </Border>
                     </Grid>
 
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer VerticalScrollBarVisibility="Hidden">
                         <StackPanel Spacing="18">
                             <StackPanel Spacing="4">
                                 <TextBlock Text="Управление хранилищем и дисками" FontSize="20" FontWeight="Bold" Foreground="#ffffff" />
@@ -525,7 +589,7 @@
                         </StackPanel>
                     </ScrollViewer>
 
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer VerticalScrollBarVisibility="Hidden">
                         <StackPanel Spacing="14">
                             <TextBlock Text="Параметры и Производительность" FontSize="20" FontWeight="Bold" Foreground="#ffffff" Margin="0,0,0,8" />
 
@@ -641,6 +705,53 @@
                             </Border>
 
                             <Border Classes="Card" Padding="18">
+                                <StackPanel Spacing="14">
+                                    <Grid ColumnDefinitions="*, Auto">
+                                        <StackPanel Grid.Column="0" Spacing="4">
+                                            <TextBlock Text="Графика и Шейдеры (Iris + Sodium)" FontWeight="SemiBold" FontSize="13" Foreground="#ffffff" />
+                                            <TextBlock Text="Реалистичные тени, освещение и выбор шейдерпака" FontSize="11" Foreground="#888888" />
+                                        </StackPanel>
+                                        <ToggleSwitch Grid.Column="1" 
+                                                      IsChecked="{Binding ShadersEnabled}" 
+                                                      OnContent="Включены" 
+                                                      OffContent="Выключены" 
+                                                      VerticalAlignment="Center" />
+                                    </Grid>
+
+                                    <Grid ColumnDefinitions="*, Auto" Margin="0,4,0,0">
+                                        <StackPanel Grid.Column="0" Spacing="4" Margin="0,0,10,0">
+                                            <TextBlock Text="Активный шейдерпак" FontSize="11" Foreground="#888888" />
+                                            <ComboBox ItemsSource="{Binding AvailableShaderPacks}" 
+                                                      SelectedItem="{Binding SelectedShaderPack}" 
+                                                      HorizontalAlignment="Stretch" />
+                                        </StackPanel>
+                                        <Button Grid.Column="1" 
+                                                Classes="SecondaryBtn" 
+                                                Margin="0,18,0,0" 
+                                                Command="{Binding OpenShaderpacksFolderCommand}"
+                                                VerticalAlignment="Center">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <ic:SymbolIcon Symbol="FolderOpen" FontSize="13" Foreground="#38bdf8" />
+                                                <TextBlock Text="Папка shaderpacks" FontSize="11" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        </Button>
+                                    </Grid>
+                                    <TextBlock Text="Настройки автоматически синхронизируются с файлом iris.properties в обе стороны (в игре клавиша K)." FontSize="11" Foreground="#777777" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Classes="Card" Padding="18">
+                                <StackPanel Spacing="10">
+                                    <TextBlock Text="Поведение при запуске Minecraft" FontWeight="SemiBold" FontSize="13" Foreground="#ffffff" />
+                                    <CheckBox Content="Закрывать лаунчер при успешном старте игры" 
+                                              IsChecked="{Binding CloseOnLaunch}" 
+                                              Foreground="#cccccc" 
+                                              FontSize="12" />
+                                    <TextBlock Text="Освобождает оперативную память и фоновые ресурсы системы для максимальной плавности игры." FontSize="11" Foreground="#777777" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Classes="Card" Padding="18">
                                 <StackPanel Spacing="12">
                                     <Grid ColumnDefinitions="*, Auto">
                                         <StackPanel Grid.Column="0" Spacing="4">
@@ -717,7 +828,7 @@
                         </Grid>
 
                         <Border Grid.Row="1" Classes="Card" Background="#141414" BorderBrush="#272727" Padding="14">
-                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                            <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Auto">
                                 <ItemsControl ItemsSource="{Binding ConsoleLogs}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="x:String">

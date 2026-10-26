@@ -12,4 +12,7 @@ public class AppSettings
     public int ServerPort { get; set; } = 25565;
     public int SyncPort { get; set; } = 25566;
     public string? SelectedSkinPath { get; set; }
+    public bool ShadersEnabled { get; set; }
+    public string SelectedShaderPack { get; set; } = "ComplementaryReimagined_r5.9.3.zip";
+    public bool CloseOnLaunch { get; set; } = true;
 }

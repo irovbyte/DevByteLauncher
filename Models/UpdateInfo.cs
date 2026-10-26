@@ -3,7 +3,7 @@ namespace DevByteLauncher.Models;
 public class UpdateInfo
 {
     public bool IsAvailable { get; set; }
-    public string CurrentVersion { get; set; } = "1.1.0";
+    public string CurrentVersion { get; set; } = UpdateService.CurrentVersion;
     public string LatestVersion { get; set; } = string.Empty;
     public string ReleaseName { get; set; } = string.Empty;
     public string ReleaseNotes { get; set; } = string.Empty;

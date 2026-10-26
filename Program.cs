@@ -1,10 +1,18 @@
 namespace DevByteLauncher;
 
-internal sealed class Program
+internal sealed partial class Program
 {
+    [LibraryImport("kernel32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool AttachConsole(int dwProcessId);
+
+    private const int AttachParentProcess = -1;
+
     [STAThread]
     public static async Task<int> Main(string[] args)
     {
+        _ = AttachConsole(AttachParentProcess);
+
         if (args.Length > 0 && args[0] == "--smoke-test")
         {
             SynchronizationContext.SetSynchronizationContext(null);

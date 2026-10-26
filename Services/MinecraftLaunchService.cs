@@ -65,50 +65,66 @@ public static class MinecraftLaunchService
             new MArgument("-XX:MaxGCPauseMillis=200"),
             new MArgument("-XX:+UnlockExperimentalVMOptions"),
             new MArgument("-XX:+DisableExplicitGC"),
-            new MArgument("-XX:+AlwaysPreTouch")
+            new MArgument("-XX:+AlwaysPreTouch"),
+            new MArgument("-Dfabric.client.title=DevByte Minecraft • Fabric 1.21.1"),
+            new MArgument("-Ddevbyte.homelab=mc.obxodka.one")
         ];
+
+        progress?.Report(("Синхронизация шейдеров и графических оптимизаций...", 95));
+        await ShaderService.EnsureShadersAndModsAsync(settings.InstallationPath, progress, cancellationToken);
+        ShaderService.SaveShaderState(settings.InstallationPath, settings.ShadersEnabled, settings.SelectedShaderPack);
 
         progress?.Report(("Запуск процесса Minecraft Fabric...", 98));
         var process = await launcher.BuildProcessAsync(versionName, launchOption, cancellationToken);
 
-        var clientLogPath = Path.Combine(logsDir, "launcher-client.log");
-        var logWriter = new StreamWriter(new FileStream(clientLogPath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
+        if (!settings.CloseOnLaunch)
         {
-            AutoFlush = true
-        };
-
-        process.StartInfo.RedirectStandardOutput = true;
-        process.StartInfo.RedirectStandardError = true;
-        process.StartInfo.UseShellExecute = false;
-
-        process.OutputDataReceived += (_, args) =>
-        {
-            if (args.Data != null)
+            var clientLogPath = Path.Combine(logsDir, "launcher-client.log");
+            var logWriter = new StreamWriter(new FileStream(clientLogPath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
             {
-                logWriter.WriteLine(args.Data);
-                onLogReceived?.Invoke(args.Data);
-            }
-        };
+                AutoFlush = true
+            };
 
-        process.ErrorDataReceived += (_, args) =>
-        {
-            if (args.Data != null)
+            process.StartInfo.RedirectStandardOutput = true;
+            process.StartInfo.RedirectStandardError = true;
+            process.StartInfo.UseShellExecute = false;
+
+            process.OutputDataReceived += (_, args) =>
             {
-                logWriter.WriteLine("[ERROR] " + args.Data);
-                onLogReceived?.Invoke("[ERROR] " + args.Data);
-            }
-        };
+                if (args.Data != null)
+                {
+                    logWriter.WriteLine(args.Data);
+                    onLogReceived?.Invoke(args.Data);
+                }
+            };
 
-        _ = process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
+            process.ErrorDataReceived += (_, args) =>
+            {
+                if (args.Data != null)
+                {
+                    logWriter.WriteLine("[ERROR] " + args.Data);
+                    onLogReceived?.Invoke("[ERROR] " + args.Data);
+                }
+            };
 
-        process.EnableRaisingEvents = true;
-        process.Exited += (_, _) =>
+            _ = process.Start();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+
+            process.EnableRaisingEvents = true;
+            process.Exited += (_, _) =>
+            {
+                logWriter.Flush();
+                logWriter.Dispose();
+            };
+        }
+        else
         {
-            logWriter.Flush();
-            logWriter.Dispose();
-        };
+            process.StartInfo.RedirectStandardOutput = false;
+            process.StartInfo.RedirectStandardError = false;
+            process.StartInfo.UseShellExecute = false;
+            _ = process.Start();
+        }
 
         progress?.Report(("Minecraft успешно запущен! Приятной игры.", 100));
         return process;

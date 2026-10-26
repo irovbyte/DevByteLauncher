@@ -60,11 +60,21 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     public partial string UpdateStatusText { get; set; } = "Проверка обновлений...";
 
+    [ObservableProperty]
+    public partial bool ShadersEnabled { get; set; }
+
+    [ObservableProperty]
+    public partial string SelectedShaderPack { get; set; } = "ComplementaryReimagined_r5.9.3.zip";
+
+    [ObservableProperty]
+    public partial bool CloseOnLaunch { get; set; } = true;
+
     public static string CurrentVersionText => $"v{UpdateService.CurrentVersion}";
 
     public ObservableCollection<DriveStorageInfo> Drives { get; } = [];
     public ObservableCollection<ModItemViewModel> Mods { get; } = [];
     public ObservableCollection<string> ConsoleLogs { get; } = [];
+    public ObservableCollection<string> AvailableShaderPacks { get; } = [];
 
     public int AllocatedRamGb
     {
@@ -122,13 +132,52 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     {
         UpdateService.CleanPreviousBinary();
         Settings = SettingsService.LoadSettings();
+        CloseOnLaunch = Settings.CloseOnLaunch;
         RefreshDrives();
         UpdateDriveSummary();
         ReloadAvatar();
+        LoadShaderState();
+        AddLog($"[{DateTime.Now:HH:mm:ss}] [SYSTEM] DevByte Launcher v{UpdateService.CurrentVersion} инициализирован.");
+        AddLog($"[{DateTime.Now:HH:mm:ss}] [SYSTEM] Директория установки: {Settings.InstallationPath}");
+        AddLog($"[{DateTime.Now:HH:mm:ss}] [SYSTEM] Сервер: {Settings.ServerHost}:{Settings.ServerPort} (Порт синхронизации: {Settings.SyncPort})");
+        AddLog($"[{DateTime.Now:HH:mm:ss}] [SYSTEM] Выделено памяти: {AllocatedRamGb} ГБ, Режим: {AuthModeBadgeText}");
+        AddLog($"[{DateTime.Now:HH:mm:ss}] [GRAPHICS] Шейдеры: {(ShadersEnabled ? $"Включены ({SelectedShaderPack})" : "Выключены (Iris + Sodium готовы)")}");
         _ = RefreshServerStatusAsync();
         _ = LoadModsListAsync();
         _ = StartPeriodicPingLoopAsync();
         _ = CheckForUpdatesAsync();
+    }
+
+    public void LoadShaderState()
+    {
+        var (isEnabled, selectedPack) = ShaderService.LoadShaderState(Settings.InstallationPath);
+        ShadersEnabled = isEnabled;
+        SelectedShaderPack = selectedPack;
+        AvailableShaderPacks.Clear();
+        foreach (var pack in ShaderService.GetAvailableShaderPacks(Settings.InstallationPath))
+        {
+            AvailableShaderPacks.Add(pack);
+        }
+    }
+
+    partial void OnShadersEnabledChanged(bool value)
+    {
+        Settings.ShadersEnabled = value;
+        ShaderService.SaveShaderState(Settings.InstallationPath, value, SelectedShaderPack);
+        SaveSettings();
+    }
+
+    partial void OnSelectedShaderPackChanged(string value)
+    {
+        Settings.SelectedShaderPack = value;
+        ShaderService.SaveShaderState(Settings.InstallationPath, ShadersEnabled, value);
+        SaveSettings();
+    }
+
+    partial void OnCloseOnLaunchChanged(bool value)
+    {
+        Settings.CloseOnLaunch = value;
+        SaveSettings();
     }
 
     public void ReloadAvatar() => AvatarBitmap = SkinService.LoadAvatarHead(Settings.SelectedSkinPath);
@@ -153,6 +202,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         {
             SelectedTabIndex = parsed;
         }
+
+        LoadShaderState();
     }
 
     [RelayCommand]
@@ -161,11 +212,11 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         try
         {
             var status = await ServerPingService.PingServerAsync(Settings.ServerHost, Settings.ServerPort);
-            ServerStatus = status;
+            Dispatcher.UIThread.Post(() => ServerStatus = status);
         }
         catch
         {
-            ServerStatus = new ServerStatusInfo { IsOnline = false };
+            Dispatcher.UIThread.Post(() => ServerStatus = new ServerStatusInfo { IsOnline = false });
         }
     }
 
@@ -198,7 +249,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             var modsDir = Path.Combine(Settings.InstallationPath, "mods");
             _ = Directory.CreateDirectory(modsDir);
 
-            Mods.Clear();
+            var items = new List<ModItemViewModel>();
             foreach (var item in manifest.Files)
             {
                 var filePath = Path.Combine(modsDir, Path.GetFileName(item.Path));
@@ -207,7 +258,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 var isEnabled = File.Exists(filePath);
                 var sizeMb = item.Size > 0 ? $"{(double)item.Size / (1024 * 1024):F2} МБ" : "—";
 
-                Mods.Add(new ModItemViewModel
+                items.Add(new ModItemViewModel
                 {
                     Name = item.Name,
                     FileName = Path.GetFileName(item.Path),
@@ -218,6 +269,15 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                     Status = isInstalled ? (isEnabled ? "Включен" : "Отключен") : "Будет загружен"
                 });
             }
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                Mods.Clear();
+                foreach (var mod in items)
+                {
+                    Mods.Add(mod);
+                }
+            });
         }
         catch
         {
@@ -376,6 +436,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     public void AddLog(string line)
     {
+        Console.WriteLine(line);
         Dispatcher.UIThread.Post(() =>
         {
             if (ConsoleLogs.Count > 1500)
@@ -421,6 +482,23 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             StatusMessage = "Игра запущена! Приятной игры на DevByte Homelab.";
             AddLog($"[{DateTime.Now:HH:mm:ss}] Клиент Minecraft успешно стартовал.");
             await LoadModsListAsync();
+
+            if (Settings.CloseOnLaunch)
+            {
+                AddLog($"[{DateTime.Now:HH:mm:ss}] Авто-закрытие лаунчера при запуске игры...");
+                await Task.Delay(1500, _cts.Token);
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+                    {
+                        desktop.Shutdown();
+                    }
+                    else
+                    {
+                        Environment.Exit(0);
+                    }
+                });
+            }
         }
         catch (Exception ex)
         {
@@ -434,27 +512,48 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     }
 
     [RelayCommand]
+    public void OpenShaderpacksFolder()
+    {
+        try
+        {
+            var shaderDir = Path.Combine(Settings.InstallationPath, "shaderpacks");
+            _ = Directory.CreateDirectory(shaderDir);
+            _ = Process.Start(new ProcessStartInfo
+            {
+                FileName = shaderDir,
+                UseShellExecute = true
+            });
+        }
+        catch
+        {
+        }
+    }
+
+    [RelayCommand]
     public async Task CheckForUpdatesAsync()
     {
         try
         {
-            UpdateStatusText = "Проверка обновлений...";
+            Dispatcher.UIThread.Post(() => UpdateStatusText = "Проверка обновлений...");
             var info = await UpdateService.CheckForUpdatesAsync(_cts.Token);
-            AvailableUpdate = info;
-            IsUpdateAvailable = info.IsAvailable;
-            if (info.IsAvailable)
+            Dispatcher.UIThread.Post(() =>
             {
-                UpdateStatusText = $"Доступна новая версия: v{info.LatestVersion}";
-                AddLog($"[{DateTime.Now:HH:mm:ss}] [UPDATER] Найдено обновление: v{info.LatestVersion} ({info.ReleaseName})");
-            }
-            else
-            {
-                UpdateStatusText = "У вас установлена последняя версия";
-            }
+                AvailableUpdate = info;
+                IsUpdateAvailable = info.IsAvailable;
+                if (info.IsAvailable)
+                {
+                    UpdateStatusText = $"Доступна новая версия: v{info.LatestVersion}";
+                    AddLog($"[{DateTime.Now:HH:mm:ss}] [UPDATER] Найдено обновление: v{info.LatestVersion} ({info.ReleaseName})");
+                }
+                else
+                {
+                    UpdateStatusText = "У вас установлена последняя версия";
+                }
+            });
         }
         catch (Exception ex)
         {
-            UpdateStatusText = "Ошибка при проверке обновлений";
+            Dispatcher.UIThread.Post(() => UpdateStatusText = "Ошибка при проверке обновлений");
             AddLog($"[{DateTime.Now:HH:mm:ss}] [ERROR] Ошибка проверки обновлений: {ex.Message}");
         }
     }
