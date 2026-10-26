@@ -6,7 +6,7 @@ namespace DevByteLauncher.Services;
 
 public static class AuthService
 {
-    private const string MicrosoftClientId = "c5d90a6e-6701-4ddc-9b44-7a73585ee6bf";
+    private const string MicrosoftClientId = "c36a9fb6-4f2a-41ff-90bd-ae7cc92031eb";
     private static readonly HttpClient t_httpClient = new();
 
     private static async Task<JELoginHandler> CreateLoginHandlerAsync(Func<string, string, Task>? onDeviceCode = null)
