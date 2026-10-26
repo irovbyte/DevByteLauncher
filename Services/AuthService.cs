@@ -2,18 +2,29 @@ namespace DevByteLauncher.Services;
 
 public static class AuthService
 {
+    private const string MicrosoftClientId = "00000000402b5328";
+
+    private static async Task<JELoginHandler> CreateLoginHandlerAsync()
+    {
+        var app = await MsalClientHelper.BuildApplicationWithCache(MicrosoftClientId);
+        var msalProvider = new MsalCodeFlowProvider(app);
+        var builder = new JELoginHandlerBuilder();
+        _ = builder.WithOAuthProvider(msalProvider);
+        return builder.Build();
+    }
+
     public static async Task<MSession> AuthenticateAsync(AppSettings settings)
     {
         if (settings.IsMicrosoftAuth)
         {
             try
             {
-                var handler = JELoginHandlerBuilder.BuildDefault();
-                return await handler.Authenticate();
+                var handler = await CreateLoginHandlerAsync();
+                return await handler.AuthenticateSilently();
             }
             catch
             {
-                var handler = JELoginHandlerBuilder.BuildDefault();
+                var handler = await CreateLoginHandlerAsync();
                 return await handler.AuthenticateInteractively();
             }
         }
@@ -24,7 +35,7 @@ public static class AuthService
 
     public static async Task<MSession> LoginMicrosoftInteractiveAsync()
     {
-        var handler = JELoginHandlerBuilder.BuildDefault();
+        var handler = await CreateLoginHandlerAsync();
         return await handler.AuthenticateInteractively();
     }
 
@@ -32,7 +43,9 @@ public static class AuthService
     {
         try
         {
-            var handler = JELoginHandlerBuilder.BuildDefault();
+            var app = await MsalClientHelper.BuildApplicationWithCache(MicrosoftClientId);
+            await MsalClientHelper.RemoveAccounts(app);
+            var handler = await CreateLoginHandlerAsync();
             await handler.Signout();
         }
         catch

@@ -379,15 +379,25 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             var session = await AuthService.LoginMicrosoftInteractiveAsync();
             if (!string.IsNullOrWhiteSpace(session.Username))
             {
-                Settings.Nickname = session.Username;
-                Settings.IsMicrosoftAuth = true;
-                Nickname = session.Username;
-                OnPropertyChanged(nameof(IsMicrosoftAuth));
-                OnPropertyChanged(nameof(AuthModeBadgeText));
-                SaveSettings();
+                Dispatcher.UIThread.Post(() =>
+                {
+                    Settings.Nickname = session.Username;
+                    Settings.IsMicrosoftAuth = true;
+                    Nickname = session.Username;
+                    OnPropertyChanged(nameof(IsMicrosoftAuth));
+                    OnPropertyChanged(nameof(AuthModeBadgeText));
+                    OnPropertyChanged(nameof(CanPlay));
+                    OnPropertyChanged(nameof(IsNicknameValid));
+                    SaveSettings();
+                });
                 AddLog($"[{DateTime.Now:HH:mm:ss}] Успешная авторизация Microsoft: {session.Username} (UUID: {session.UUID})");
                 StatusMessage = $"Вход выполнен: {session.Username}";
             }
+        }
+        catch (OperationCanceledException)
+        {
+            StatusMessage = "Авторизация Microsoft отменена.";
+            AddLog($"[{DateTime.Now:HH:mm:ss}] Авторизация Microsoft отменена пользователем.");
         }
         catch (Exception ex)
         {
@@ -396,18 +406,28 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         }
         finally
         {
-            IsBusy = false;
+            Dispatcher.UIThread.Post(() => IsBusy = false);
         }
     }
 
     [RelayCommand]
     public async Task LogoutMicrosoftAsync()
     {
-        await AuthService.SignoutMicrosoftAsync();
-        Settings.IsMicrosoftAuth = false;
-        OnPropertyChanged(nameof(IsMicrosoftAuth));
-        OnPropertyChanged(nameof(AuthModeBadgeText));
-        SaveSettings();
+        try
+        {
+            await AuthService.SignoutMicrosoftAsync();
+        }
+        catch
+        {
+        }
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            Settings.IsMicrosoftAuth = false;
+            OnPropertyChanged(nameof(IsMicrosoftAuth));
+            OnPropertyChanged(nameof(AuthModeBadgeText));
+            SaveSettings();
+        });
         AddLog($"[{DateTime.Now:HH:mm:ss}] Выход из аккаунта Microsoft. Режим переключен на офлайн.");
         StatusMessage = "Режим переключен на офлайн";
     }

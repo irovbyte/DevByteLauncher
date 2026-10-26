@@ -28,3 +28,5 @@ global using DevByteLauncher.Services;
 global using DevByteLauncher.ViewModels;
 global using DevByteLauncher.Views;
 global using SkiaSharp;
+global using XboxAuthNet.Game.Msal;
+global using XboxAuthNet.Game.Msal.OAuth;

@@ -1,24 +1,29 @@
-<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="using:DevByteLauncher.ViewModels"
-        xmlns:models="using:DevByteLauncher.Models"
-        xmlns:ic="using:FluentIcons.Avalonia"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="1050" d:DesignHeight="680"
-        x:Class="DevByteLauncher.Views.MainWindow"
-        x:DataType="vm:MainViewModel"
-        Icon="/Assets/app-icon.ico"
-        Title=""
-        Width="1050" Height="680"
-        MinWidth="900" MinHeight="600"
-        WindowStartupLocation="CenterScreen"
-        ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaTitleBarHeightHint="44"
-        Background="#202020"
-        Focusable="True"
-        PointerPressed="OnWindowPointerPressed"
-        FontFamily="Segoe UI Variable Text, Segoe UI, system-ui, sans-serif">
+﻿<Window
+    x:Class="DevByteLauncher.Views.MainWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:ic="using:FluentIcons.Avalonia"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="using:DevByteLauncher.Models"
+    xmlns:vm="using:DevByteLauncher.ViewModels"
+    Title=""
+    Width="1050"
+    Height="680"
+    MinWidth="900"
+    MinHeight="600"
+    d:DesignHeight="680"
+    d:DesignWidth="1050"
+    x:DataType="vm:MainViewModel"
+    Background="#202020"
+    ExtendClientAreaTitleBarHeightHint="44"
+    ExtendClientAreaToDecorationsHint="True"
+    Focusable="True"
+    FontFamily="Segoe UI Variable Text, Segoe UI, system-ui, sans-serif"
+    Icon="/Assets/app-icon.ico"
+    PointerPressed="OnWindowPointerPressed"
+    WindowStartupLocation="CenterScreen"
+    mc:Ignorable="d">
 
     <Window.Styles>
         <Style Selector="Button.NavBtn">
@@ -135,203 +140,499 @@
     </Window.Styles>
 
     <Grid RowDefinitions="44, *, 32">
-        <Border Grid.Row="0" 
-                Background="#242424" 
-                BorderBrush="#2f2f2f" 
-                BorderThickness="0,0,0,1"
-                Name="TitleBarArea">
-            <Grid ColumnDefinitions="Auto, *" Margin="16,0,150,0" VerticalAlignment="Center">
-                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                    <Image Source="/Assets/launcher-mascot.png" Width="22" Height="22" VerticalAlignment="Center" />
-                    <TextBlock Text="DevByte Launcher" FontWeight="SemiBold" FontSize="13" Foreground="#ffffff" VerticalAlignment="Center" />
-                    <Border Background="#1b3d2f" CornerRadius="4" Padding="6,2" Margin="6,0,0,0" VerticalAlignment="Center">
-                        <TextBlock Text="Fabric 1.21.1" FontSize="10" FontWeight="SemiBold" Foreground="#4ade80" />
+        <Border
+            Name="TitleBarArea"
+            Grid.Row="0"
+            Background="#242424"
+            BorderBrush="#2f2f2f"
+            BorderThickness="0,0,0,1">
+            <Grid
+                Margin="16,0,150,0"
+                VerticalAlignment="Center"
+                ColumnDefinitions="Auto, *">
+                <StackPanel
+                    Grid.Column="0"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal"
+                    Spacing="10">
+                    <Image
+                        Width="22"
+                        Height="22"
+                        VerticalAlignment="Center"
+                        Source="/Assets/launcher-mascot.png" />
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        Foreground="#ffffff"
+                        Text="DevByte Launcher" />
+                    <Border
+                        Margin="6,0,0,0"
+                        Padding="6,2"
+                        VerticalAlignment="Center"
+                        Background="#1b3d2f"
+                        CornerRadius="4">
+                        <TextBlock
+                            FontSize="10"
+                            FontWeight="SemiBold"
+                            Foreground="#4ade80"
+                            Text="Fabric 1.21.1" />
                     </Border>
                 </StackPanel>
 
-                <Button Grid.Column="1" 
-                        HorizontalAlignment="Center" 
-                        Classes="StatusPill" 
-                        Command="{Binding RefreshServerStatusCommand}"
-                        ToolTip.Tip="mc.obxodka.one:25565 • Нажмите для обновления статуса">
+                <Button
+                    Grid.Column="1"
+                    HorizontalAlignment="Center"
+                    Classes="StatusPill"
+                    Command="{Binding RefreshServerStatusCommand}"
+                    ToolTip.Tip="mc.obxodka.one:25565 • Нажмите для обновления статуса">
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Ellipse Width="8" Height="8" 
-                                 Fill="{Binding ServerStatus.StatusColor}" 
-                                 Name="StatusDot" />
-                        <TextBlock Text="{Binding ServerStatus.StatusBadgeText}" FontSize="11" Foreground="#c0c0c0" VerticalAlignment="Center" />
-                        <ic:SymbolIcon Symbol="ArrowSync" FontSize="11" Foreground="#60cdff" VerticalAlignment="Center" Margin="2,0,0,0" />
+                        <Ellipse
+                            Name="StatusDot"
+                            Width="8"
+                            Height="8"
+                            Fill="{Binding ServerStatus.StatusColor}" />
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            FontSize="11"
+                            Foreground="#c0c0c0"
+                            Text="{Binding ServerStatus.StatusBadgeText}" />
+                        <ic:SymbolIcon
+                            Margin="2,0,0,0"
+                            VerticalAlignment="Center"
+                            FontSize="11"
+                            Foreground="#60cdff"
+                            Symbol="ArrowSync" />
                     </StackPanel>
                 </Button>
             </Grid>
         </Border>
 
         <Grid Grid.Row="1" ColumnDefinitions="240, *">
-            <Border Grid.Column="0" 
-                    Background="#242424" 
-                    BorderBrush="#2f2f2f" 
-                    BorderThickness="0,0,1,0">
-                <Grid RowDefinitions="Auto, *, Auto" Margin="12,14,12,14">
-                    <StackPanel Grid.Row="0" Margin="4,0,4,16" Spacing="10">
+            <Border
+                Grid.Column="0"
+                Background="#242424"
+                BorderBrush="#2f2f2f"
+                BorderThickness="0,0,1,0">
+                <Grid Margin="12,14,12,14" RowDefinitions="Auto, *, Auto">
+                    <StackPanel
+                        Grid.Row="0"
+                        Margin="4,0,4,16"
+                        Spacing="10">
                         <Grid ColumnDefinitions="Auto, *">
-                            <Image Grid.Column="0" Source="/Assets/launcher-mascot.png" Width="36" Height="36" VerticalAlignment="Center" />
-                            <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
-                                <TextBlock Text="DEVBYTE" FontWeight="Bold" FontSize="14" Foreground="#ffffff" LetterSpacing="0.8" />
-                                <TextBlock Text="Homelab Fabric 1.21.1" FontSize="10" Foreground="#60cdff" FontWeight="SemiBold" />
+                            <Image
+                                Grid.Column="0"
+                                Width="36"
+                                Height="36"
+                                VerticalAlignment="Center"
+                                Source="/Assets/launcher-mascot.png" />
+                            <StackPanel
+                                Grid.Column="1"
+                                Margin="10,0,0,0"
+                                VerticalAlignment="Center">
+                                <TextBlock
+                                    FontSize="14"
+                                    FontWeight="Bold"
+                                    Foreground="#ffffff"
+                                    LetterSpacing="0.8"
+                                    Text="DEVBYTE" />
+                                <TextBlock
+                                    FontSize="10"
+                                    FontWeight="SemiBold"
+                                    Foreground="#60cdff"
+                                    Text="Homelab Fabric 1.21.1" />
                             </StackPanel>
                         </Grid>
-                        <Border Background="#333333" Height="1" Margin="0,4,0,0" />
+                        <Border
+                            Height="1"
+                            Margin="0,4,0,0"
+                            Background="#333333" />
                     </StackPanel>
 
                     <StackPanel Grid.Row="1" Spacing="4">
-                        <Button Classes="NavBtn" Command="{Binding SelectTabCommand}" CommandParameter="0">
+                        <Button
+                            Classes="NavBtn"
+                            Command="{Binding SelectTabCommand}"
+                            CommandParameter="0">
                             <Grid ColumnDefinitions="Auto, Auto, *">
-                                <Border Grid.Column="0" Width="3" Height="16" CornerRadius="1.5" Background="#60cdff" IsVisible="{Binding IsTab0Selected}" Margin="-6,0,8,0" />
-                                <ic:SymbolIcon Grid.Column="1" Symbol="Play" FontSize="16" Foreground="#60cdff" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="2" Text="Играть" FontWeight="SemiBold" VerticalAlignment="Center" Margin="10,0,0,0" />
+                                <Border
+                                    Grid.Column="0"
+                                    Width="3"
+                                    Height="16"
+                                    Margin="-6,0,8,0"
+                                    Background="#60cdff"
+                                    CornerRadius="1.5"
+                                    IsVisible="{Binding IsTab0Selected}" />
+                                <ic:SymbolIcon
+                                    Grid.Column="1"
+                                    VerticalAlignment="Center"
+                                    FontSize="16"
+                                    Foreground="#60cdff"
+                                    Symbol="Play" />
+                                <TextBlock
+                                    Grid.Column="2"
+                                    Margin="10,0,0,0"
+                                    VerticalAlignment="Center"
+                                    FontWeight="SemiBold"
+                                    Text="Играть" />
                             </Grid>
                         </Button>
 
-                        <Button Classes="NavBtn" Command="{Binding SelectTabCommand}" CommandParameter="1">
+                        <Button
+                            Classes="NavBtn"
+                            Command="{Binding SelectTabCommand}"
+                            CommandParameter="1">
                             <Grid ColumnDefinitions="Auto, Auto, *">
-                                <Border Grid.Column="0" Width="3" Height="16" CornerRadius="1.5" Background="#60cdff" IsVisible="{Binding IsTab1Selected}" Margin="-6,0,8,0" />
-                                <ic:SymbolIcon Grid.Column="1" Symbol="FolderZip" FontSize="16" Foreground="#a78bfa" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="2" Text="Моды сборки" FontWeight="Normal" VerticalAlignment="Center" Margin="10,0,0,0" />
+                                <Border
+                                    Grid.Column="0"
+                                    Width="3"
+                                    Height="16"
+                                    Margin="-6,0,8,0"
+                                    Background="#60cdff"
+                                    CornerRadius="1.5"
+                                    IsVisible="{Binding IsTab1Selected}" />
+                                <ic:SymbolIcon
+                                    Grid.Column="1"
+                                    VerticalAlignment="Center"
+                                    FontSize="16"
+                                    Foreground="#a78bfa"
+                                    Symbol="FolderZip" />
+                                <TextBlock
+                                    Grid.Column="2"
+                                    Margin="10,0,0,0"
+                                    VerticalAlignment="Center"
+                                    FontWeight="Normal"
+                                    Text="Моды сборки" />
                             </Grid>
                         </Button>
 
-                        <Button Classes="NavBtn" Command="{Binding SelectTabCommand}" CommandParameter="2">
+                        <Button
+                            Classes="NavBtn"
+                            Command="{Binding SelectTabCommand}"
+                            CommandParameter="2">
                             <Grid ColumnDefinitions="Auto, Auto, *">
-                                <Border Grid.Column="0" Width="3" Height="16" CornerRadius="1.5" Background="#60cdff" IsVisible="{Binding IsTab2Selected}" Margin="-6,0,8,0" />
-                                <ic:SymbolIcon Grid.Column="1" Symbol="HardDrive" FontSize="16" Foreground="#38bdf8" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="2" Text="Диски и Память" FontWeight="Normal" VerticalAlignment="Center" Margin="10,0,0,0" />
+                                <Border
+                                    Grid.Column="0"
+                                    Width="3"
+                                    Height="16"
+                                    Margin="-6,0,8,0"
+                                    Background="#60cdff"
+                                    CornerRadius="1.5"
+                                    IsVisible="{Binding IsTab2Selected}" />
+                                <ic:SymbolIcon
+                                    Grid.Column="1"
+                                    VerticalAlignment="Center"
+                                    FontSize="16"
+                                    Foreground="#38bdf8"
+                                    Symbol="HardDrive" />
+                                <TextBlock
+                                    Grid.Column="2"
+                                    Margin="10,0,0,0"
+                                    VerticalAlignment="Center"
+                                    FontWeight="Normal"
+                                    Text="Диски и Память" />
                             </Grid>
                         </Button>
 
-                        <Button Classes="NavBtn" Command="{Binding SelectTabCommand}" CommandParameter="3">
+                        <Button
+                            Classes="NavBtn"
+                            Command="{Binding SelectTabCommand}"
+                            CommandParameter="3">
                             <Grid ColumnDefinitions="Auto, Auto, *">
-                                <Border Grid.Column="0" Width="3" Height="16" CornerRadius="1.5" Background="#60cdff" IsVisible="{Binding IsTab3Selected}" Margin="-6,0,8,0" />
-                                <ic:SymbolIcon Grid.Column="1" Symbol="Settings" FontSize="16" Foreground="#facc15" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="2" Text="Настройки" FontWeight="Normal" VerticalAlignment="Center" Margin="10,0,0,0" />
+                                <Border
+                                    Grid.Column="0"
+                                    Width="3"
+                                    Height="16"
+                                    Margin="-6,0,8,0"
+                                    Background="#60cdff"
+                                    CornerRadius="1.5"
+                                    IsVisible="{Binding IsTab3Selected}" />
+                                <ic:SymbolIcon
+                                    Grid.Column="1"
+                                    VerticalAlignment="Center"
+                                    FontSize="16"
+                                    Foreground="#facc15"
+                                    Symbol="Settings" />
+                                <TextBlock
+                                    Grid.Column="2"
+                                    Margin="10,0,0,0"
+                                    VerticalAlignment="Center"
+                                    FontWeight="Normal"
+                                    Text="Настройки" />
                             </Grid>
                         </Button>
 
-                        <Button Classes="NavBtn" Command="{Binding SelectTabCommand}" CommandParameter="4">
+                        <Button
+                            Classes="NavBtn"
+                            Command="{Binding SelectTabCommand}"
+                            CommandParameter="4">
                             <Grid ColumnDefinitions="Auto, Auto, *">
-                                <Border Grid.Column="0" Width="3" Height="16" CornerRadius="1.5" Background="#60cdff" IsVisible="{Binding IsTab4Selected}" Margin="-6,0,8,0" />
-                                <ic:SymbolIcon Grid.Column="1" Symbol="Code" FontSize="16" Foreground="#34d399" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="2" Text="Консоль / Логи" FontWeight="Normal" VerticalAlignment="Center" Margin="10,0,0,0" />
+                                <Border
+                                    Grid.Column="0"
+                                    Width="3"
+                                    Height="16"
+                                    Margin="-6,0,8,0"
+                                    Background="#60cdff"
+                                    CornerRadius="1.5"
+                                    IsVisible="{Binding IsTab4Selected}" />
+                                <ic:SymbolIcon
+                                    Grid.Column="1"
+                                    VerticalAlignment="Center"
+                                    FontSize="16"
+                                    Foreground="#34d399"
+                                    Symbol="Code" />
+                                <TextBlock
+                                    Grid.Column="2"
+                                    Margin="10,0,0,0"
+                                    VerticalAlignment="Center"
+                                    FontWeight="Normal"
+                                    Text="Консоль / Логи" />
                             </Grid>
                         </Button>
                     </StackPanel>
 
-                    <Border Grid.Row="2" Classes="Card" Padding="10" Margin="0,10,0,0">
+                    <Border
+                        Grid.Row="2"
+                        Margin="0,10,0,0"
+                        Padding="10"
+                        Classes="Card">
                         <Grid ColumnDefinitions="Auto, *">
-                            <Border Grid.Column="0" Background="#383838" CornerRadius="6" ClipToBounds="True" Width="38" Height="38">
-                                <Image Source="{Binding AvatarBitmap}" Width="38" Height="38" Stretch="UniformToFill" />
+                            <Border
+                                Grid.Column="0"
+                                Width="38"
+                                Height="38"
+                                Background="#383838"
+                                ClipToBounds="True"
+                                CornerRadius="6">
+                                <Image
+                                    Width="38"
+                                    Height="38"
+                                    Source="{Binding AvatarBitmap}"
+                                    Stretch="UniformToFill" />
                             </Border>
-                            <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding DisplayNameText}" FontWeight="SemiBold" FontSize="13" Foreground="#ffffff" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Text="{Binding AuthModeBadgeText}" FontSize="11" Foreground="#4ade80" FontWeight="SemiBold" />
+                            <StackPanel
+                                Grid.Column="1"
+                                Margin="10,0,0,0"
+                                VerticalAlignment="Center">
+                                <TextBlock
+                                    FontSize="13"
+                                    FontWeight="SemiBold"
+                                    Foreground="#ffffff"
+                                    Text="{Binding DisplayNameText}"
+                                    TextTrimming="CharacterEllipsis" />
+                                <TextBlock
+                                    FontSize="11"
+                                    FontWeight="SemiBold"
+                                    Foreground="#4ade80"
+                                    Text="{Binding AuthModeBadgeText}" />
                             </StackPanel>
                         </Grid>
                     </Border>
                 </Grid>
             </Border>
 
-            <Border Grid.Column="1" Background="#1e1e1e" Padding="24">
+            <Border
+                Grid.Column="1"
+                Padding="24"
+                Background="#1e1e1e">
                 <Carousel SelectedIndex="{Binding SelectedTabIndex}">
                     <Carousel.PageTransition>
                         <CompositePageTransition>
                             <CrossFade Duration="0:0:0.18" />
-                            <PageSlide Duration="0:0:0.22" Orientation="Horizontal" />
+                            <PageSlide Orientation="Horizontal" Duration="0:0:0.22" />
                         </CompositePageTransition>
                     </Carousel.PageTransition>
                     <ScrollViewer VerticalScrollBarVisibility="Hidden">
                         <StackPanel Spacing="18">
-                            <Border Classes="Card" 
-                                    Background="#142838" 
-                                    BorderBrush="#38bdf8" 
-                                    BorderThickness="1"
-                                    Padding="16"
-                                    IsVisible="{Binding IsUpdateAvailable}">
+                            <Border
+                                Padding="16"
+                                Background="#142838"
+                                BorderBrush="#38bdf8"
+                                BorderThickness="1"
+                                Classes="Card"
+                                IsVisible="{Binding IsUpdateAvailable}">
                                 <Grid ColumnDefinitions="Auto, *, Auto">
-                                    <ic:SymbolIcon Grid.Column="0" Symbol="ArrowDownload" FontSize="26" Foreground="#38bdf8" VerticalAlignment="Center" Margin="0,0,14,0" />
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                                    <ic:SymbolIcon
+                                        Grid.Column="0"
+                                        Margin="0,0,14,0"
+                                        VerticalAlignment="Center"
+                                        FontSize="26"
+                                        Foreground="#38bdf8"
+                                        Symbol="ArrowDownload" />
+                                    <StackPanel
+                                        Grid.Column="1"
+                                        VerticalAlignment="Center"
+                                        Spacing="4">
                                         <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <TextBlock Text="Доступно обновление лаунчера" FontWeight="Bold" FontSize="14" Foreground="#ffffff" />
-                                            <Border Background="#1b3d2f" CornerRadius="4" Padding="6,1" VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding AvailableUpdate.LatestVersion, StringFormat='v{0}'}" FontSize="11" FontWeight="SemiBold" Foreground="#4ade80" />
+                                            <TextBlock
+                                                FontSize="14"
+                                                FontWeight="Bold"
+                                                Foreground="#ffffff"
+                                                Text="Доступно обновление лаунчера" />
+                                            <Border
+                                                Padding="6,1"
+                                                VerticalAlignment="Center"
+                                                Background="#1b3d2f"
+                                                CornerRadius="4">
+                                                <TextBlock
+                                                    FontSize="11"
+                                                    FontWeight="SemiBold"
+                                                    Foreground="#4ade80"
+                                                    Text="{Binding AvailableUpdate.LatestVersion, StringFormat='v{0}'}" />
                                             </Border>
                                         </StackPanel>
-                                        <TextBlock Text="{Binding AvailableUpdate.ReleaseName}" FontSize="12" Foreground="#9bb0c1" />
-                                        <StackPanel IsVisible="{Binding IsUpdating}" Margin="0,6,0,0" Spacing="4">
+                                        <TextBlock
+                                            FontSize="12"
+                                            Foreground="#9bb0c1"
+                                            Text="{Binding AvailableUpdate.ReleaseName}" />
+                                        <StackPanel
+                                            Margin="0,6,0,0"
+                                            IsVisible="{Binding IsUpdating}"
+                                            Spacing="4">
                                             <Grid ColumnDefinitions="*, Auto">
-                                                <TextBlock Grid.Column="0" Text="{Binding UpdateStatusText}" FontSize="11" Foreground="#38bdf8" />
-                                                <TextBlock Grid.Column="1" Text="{Binding UpdateProgress, StringFormat='{}{0:F0}%'}" FontSize="11" Foreground="#38bdf8" FontWeight="Bold" />
+                                                <TextBlock
+                                                    Grid.Column="0"
+                                                    FontSize="11"
+                                                    Foreground="#38bdf8"
+                                                    Text="{Binding UpdateStatusText}" />
+                                                <TextBlock
+                                                    Grid.Column="1"
+                                                    FontSize="11"
+                                                    FontWeight="Bold"
+                                                    Foreground="#38bdf8"
+                                                    Text="{Binding UpdateProgress, StringFormat='{}{0:F0}%'}" />
                                             </Grid>
-                                            <ProgressBar Value="{Binding UpdateProgress}" Maximum="100" Height="4" CornerRadius="2" Foreground="#38bdf8" Background="#243444" />
+                                            <ProgressBar
+                                                Height="4"
+                                                Background="#243444"
+                                                CornerRadius="2"
+                                                Foreground="#38bdf8"
+                                                Maximum="100"
+                                                Value="{Binding UpdateProgress}" />
                                         </StackPanel>
                                     </StackPanel>
-                                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="14,0,0,0">
-                                        <Button Classes="PlayBtn" 
-                                                Padding="14,8"
-                                                Command="{Binding ApplyUpdateCommand}" 
-                                                IsEnabled="{Binding !IsUpdating}">
+                                    <StackPanel
+                                        Grid.Column="2"
+                                        Margin="14,0,0,0"
+                                        VerticalAlignment="Center"
+                                        Orientation="Horizontal"
+                                        Spacing="8">
+                                        <Button
+                                            Padding="14,8"
+                                            Classes="PlayBtn"
+                                            Command="{Binding ApplyUpdateCommand}"
+                                            IsEnabled="{Binding !IsUpdating}">
                                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                                <ic:SymbolIcon Symbol="ArrowDownload" FontSize="14" />
-                                                <TextBlock Text="Обновить" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                <ic:SymbolIcon FontSize="14" Symbol="ArrowDownload" />
+                                                <TextBlock
+                                                    VerticalAlignment="Center"
+                                                    FontSize="12"
+                                                    FontWeight="SemiBold"
+                                                    Text="Обновить" />
                                             </StackPanel>
                                         </Button>
-                                        <Button Classes="SecondaryBtn" 
-                                                Padding="8"
-                                                Command="{Binding DismissUpdateCommand}"
-                                                IsEnabled="{Binding !IsUpdating}"
-                                                ToolTip.Tip="Отложить обновление">
-                                            <ic:SymbolIcon Symbol="Dismiss" FontSize="14" Foreground="#888888" />
+                                        <Button
+                                            Padding="8"
+                                            Classes="SecondaryBtn"
+                                            Command="{Binding DismissUpdateCommand}"
+                                            IsEnabled="{Binding !IsUpdating}"
+                                            ToolTip.Tip="Отложить обновление">
+                                            <ic:SymbolIcon
+                                                FontSize="14"
+                                                Foreground="#888888"
+                                                Symbol="Dismiss" />
                                         </Button>
                                     </StackPanel>
                                 </Grid>
                             </Border>
 
-                            <Border Classes="Card" 
-                                    Background="#17222b" 
-                                    BorderBrush="#254256" 
-                                    Padding="24"
-                                    MinHeight="180">
-                                <Grid RowDefinitions="*, Auto" ColumnDefinitions="*, Auto">
-                                    <StackPanel Grid.Row="0" Grid.Column="0" Spacing="8">
-                                        <Border HorizontalAlignment="Left" Background="#1b3d2f" CornerRadius="12" Padding="8,3">
-                                            <TextBlock Text="● Homelab Выделенный Сервер" FontSize="11" FontWeight="SemiBold" Foreground="#4ade80" />
+                            <Border
+                                MinHeight="180"
+                                Padding="24"
+                                Background="#17222b"
+                                BorderBrush="#254256"
+                                Classes="Card">
+                                <Grid ColumnDefinitions="*, Auto" RowDefinitions="*, Auto">
+                                    <StackPanel
+                                        Grid.Row="0"
+                                        Grid.Column="0"
+                                        Spacing="8">
+                                        <Border
+                                            Padding="8,3"
+                                            HorizontalAlignment="Left"
+                                            Background="#1b3d2f"
+                                            CornerRadius="12">
+                                            <TextBlock
+                                                FontSize="11"
+                                                FontWeight="SemiBold"
+                                                Foreground="#4ade80"
+                                                Text="● Homelab Выделенный Сервер" />
                                         </Border>
-                                        <TextBlock Text="DevByte Minecraft" FontSize="26" FontWeight="Bold" Foreground="#ffffff" />
-                                        <TextBlock Text="Сервер mc.obxodka.one:25565 • Fabric 1.21.1 с оптимизацией C2ME, Lithium и FerriteCore" 
-                                                   FontSize="13" Foreground="#9bb0c1" />
+                                        <TextBlock
+                                            FontSize="26"
+                                            FontWeight="Bold"
+                                            Foreground="#ffffff"
+                                            Text="DevByte Minecraft" />
+                                        <TextBlock
+                                            FontSize="13"
+                                            Foreground="#9bb0c1"
+                                            Text="Сервер mc.obxodka.one:25565 • Fabric 1.21.1 с оптимизацией C2ME, Lithium и FerriteCore" />
                                     </StackPanel>
 
-                                    <Image Grid.Row="0" Grid.Column="1" 
-                                           Source="/Assets/launcher-mascot.png" 
-                                           Width="110" Height="110" 
-                                           Margin="16,0,0,0"
-                                           VerticalAlignment="Center" />
+                                    <Image
+                                        Grid.Row="0"
+                                        Grid.Column="1"
+                                        Width="110"
+                                        Height="110"
+                                        Margin="16,0,0,0"
+                                        VerticalAlignment="Center"
+                                        Source="/Assets/launcher-mascot.png" />
 
-                                    <Border Grid.Row="1" Grid.ColumnSpan="2" Margin="0,16,0,0" Background="#1c2c38" CornerRadius="6" Padding="12,8">
+                                    <Border
+                                        Grid.Row="1"
+                                        Grid.ColumnSpan="2"
+                                        Margin="0,16,0,0"
+                                        Padding="12,8"
+                                        Background="#1c2c38"
+                                        CornerRadius="6">
                                         <Grid ColumnDefinitions="Auto, *, Auto">
-                                            <ic:SymbolIcon Grid.Column="0" Symbol="ShieldCheckmark" FontSize="18" Foreground="#38bdf8" VerticalAlignment="Center" />
-                                            <StackPanel Grid.Column="1" Margin="10,0,10,0" VerticalAlignment="Center">
-                                                <TextBlock Text="Защита от переполнения диска активирована" FontSize="12" FontWeight="SemiBold" Foreground="#ffffff" />
-                                                <TextBlock Text="{Binding CurrentDriveSummary, StringFormat='Папка установки: {0}'}" 
-                                                           FontSize="11" Foreground="#9bb0c1" />
+                                            <ic:SymbolIcon
+                                                Grid.Column="0"
+                                                VerticalAlignment="Center"
+                                                FontSize="18"
+                                                Foreground="#38bdf8"
+                                                Symbol="ShieldCheckmark" />
+                                            <StackPanel
+                                                Grid.Column="1"
+                                                Margin="10,0,10,0"
+                                                VerticalAlignment="Center">
+                                                <TextBlock
+                                                    FontSize="12"
+                                                    FontWeight="SemiBold"
+                                                    Foreground="#ffffff"
+                                                    Text="Защита от переполнения диска активирована" />
+                                                <TextBlock
+                                                    FontSize="11"
+                                                    Foreground="#9bb0c1"
+                                                    Text="{Binding CurrentDriveSummary, StringFormat='Папка установки: {0}'}" />
                                             </StackPanel>
-                                            <Button Grid.Column="2" 
-                                                    Classes="SecondaryBtn" 
-                                                    Padding="10,4" 
-                                                    FontSize="11" 
-                                                    Command="{Binding SelectTabCommand}" 
-                                                    CommandParameter="2"
-                                                    VerticalAlignment="Center">
+                                            <Button
+                                                Grid.Column="2"
+                                                Padding="10,4"
+                                                VerticalAlignment="Center"
+                                                Classes="SecondaryBtn"
+                                                Command="{Binding SelectTabCommand}"
+                                                CommandParameter="2"
+                                                FontSize="11">
                                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                                    <ic:SymbolIcon Symbol="FolderOpen" FontSize="13" Foreground="#38bdf8" />
-                                                    <TextBlock Text="Выбрать диск/папку..." FontSize="11" VerticalAlignment="Center" />
+                                                    <ic:SymbolIcon
+                                                        FontSize="13"
+                                                        Foreground="#38bdf8"
+                                                        Symbol="FolderOpen" />
+                                                    <TextBlock
+                                                        VerticalAlignment="Center"
+                                                        FontSize="11"
+                                                        Text="Выбрать диск/папку..." />
                                                 </StackPanel>
                                             </Button>
                                         </Grid>
@@ -339,142 +640,255 @@
                                 </Grid>
                             </Border>
 
-                            <Border Classes="Card" Padding="24">
-                                <Grid RowDefinitions="Auto, Auto, Auto" ColumnDefinitions="*, Auto">
-                                    <StackPanel Grid.Row="0" Grid.Column="0" Spacing="6">
+                            <Border Padding="24" Classes="Card">
+                                <Grid ColumnDefinitions="*, Auto" RowDefinitions="Auto, Auto, Auto">
+                                    <StackPanel
+                                        Grid.Row="0"
+                                        Grid.Column="0"
+                                        Spacing="6">
                                         <Grid ColumnDefinitions="Auto, Auto">
-                                            <TextBlock Grid.Column="0" Text="Ваш игровой никнейм" FontSize="12" FontWeight="SemiBold" Foreground="#bbbbbb" VerticalAlignment="Center" />
-                                            <Button Grid.Column="1" 
-                                                    Classes="SecondaryBtn" 
-                                                    Padding="8,2" 
-                                                    Margin="10,0,0,0" 
-                                                    FontSize="10" 
-                                                    Command="{Binding SelectTabCommand}" 
-                                                    CommandParameter="3"
-                                                    ToolTip.Tip="Настроить вход через Microsoft или сменить скин">
+                                            <TextBlock
+                                                Grid.Column="0"
+                                                VerticalAlignment="Center"
+                                                FontSize="12"
+                                                FontWeight="SemiBold"
+                                                Foreground="#bbbbbb"
+                                                Text="Ваш игровой никнейм" />
+                                            <Button
+                                                Grid.Column="1"
+                                                Margin="10,0,0,0"
+                                                Padding="8,2"
+                                                Classes="SecondaryBtn"
+                                                Command="{Binding SelectTabCommand}"
+                                                CommandParameter="3"
+                                                FontSize="10"
+                                                ToolTip.Tip="Настроить вход через Microsoft или сменить скин">
                                                 <StackPanel Orientation="Horizontal" Spacing="4">
-                                                    <ic:SymbolIcon Symbol="XboxController" FontSize="12" Foreground="#4ade80" />
-                                                    <TextBlock Text="{Binding AuthModeBadgeText}" FontSize="10" FontWeight="SemiBold" Foreground="#4ade80" VerticalAlignment="Center" />
+                                                    <ic:SymbolIcon
+                                                        FontSize="12"
+                                                        Foreground="#4ade80"
+                                                        Symbol="XboxController" />
+                                                    <TextBlock
+                                                        VerticalAlignment="Center"
+                                                        FontSize="10"
+                                                        FontWeight="SemiBold"
+                                                        Foreground="#4ade80"
+                                                        Text="{Binding AuthModeBadgeText}" />
                                                 </StackPanel>
                                             </Button>
                                         </Grid>
 
-                                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                            <TextBox Text="{Binding Nickname}" 
-                                                     PlaceholderText="Введите ваш никнейм..."
-                                                     Width="210" 
-                                                     Padding="10,8" 
-                                                     CornerRadius="6" 
-                                                     Background="#242424" 
-                                                     BorderBrush="{Binding NicknameBorderBrush}" />
+                                        <StackPanel
+                                            VerticalAlignment="Center"
+                                            Orientation="Horizontal"
+                                            Spacing="8">
+                                            <TextBox
+                                                Width="210"
+                                                Padding="10,8"
+                                                Background="#242424"
+                                                BorderBrush="{Binding NicknameBorderBrush}"
+                                                CornerRadius="6"
+                                                PlaceholderText="Введите ваш никнейм..."
+                                                Text="{Binding Nickname}" />
 
-                                            <Button Classes="SecondaryBtn" 
-                                                    Padding="8,6" 
-                                                    VerticalAlignment="Center"
-                                                    Command="{Binding LoginMicrosoftCommand}"
-                                                    IsVisible="{Binding !IsMicrosoftAuth}"
-                                                    ToolTip.Tip="Войти через учетную запись Microsoft Store / Xbox Live">
+                                            <Button
+                                                Padding="8,6"
+                                                VerticalAlignment="Center"
+                                                Classes="SecondaryBtn"
+                                                Command="{Binding LoginMicrosoftCommand}"
+                                                IsVisible="{Binding !IsMicrosoftAuth}"
+                                                ToolTip.Tip="Войти через учетную запись Microsoft Store / Xbox Live">
                                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                                    <ic:SymbolIcon Symbol="XboxController" FontSize="13" Foreground="#4ade80" />
-                                                    <TextBlock Text="Вход Microsoft" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                    <ic:SymbolIcon
+                                                        FontSize="13"
+                                                        Foreground="#4ade80"
+                                                        Symbol="XboxController" />
+                                                    <TextBlock
+                                                        VerticalAlignment="Center"
+                                                        FontSize="11"
+                                                        FontWeight="SemiBold"
+                                                        Text="Вход Microsoft" />
                                                 </StackPanel>
                                             </Button>
 
-                                            <Button Classes="SecondaryBtn" 
-                                                    Padding="8,6" 
-                                                    VerticalAlignment="Center"
-                                                    Command="{Binding LogoutMicrosoftCommand}"
-                                                    IsVisible="{Binding IsMicrosoftAuth}"
-                                                    ToolTip.Tip="Выйти из аккаунта Microsoft и переключиться в офлайн">
+                                            <Button
+                                                Padding="8,6"
+                                                VerticalAlignment="Center"
+                                                Classes="SecondaryBtn"
+                                                Command="{Binding LogoutMicrosoftCommand}"
+                                                IsVisible="{Binding IsMicrosoftAuth}"
+                                                ToolTip.Tip="Выйти из аккаунта Microsoft и переключиться в офлайн">
                                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                                    <ic:SymbolIcon Symbol="SignOut" FontSize="13" Foreground="#f87171" />
-                                                    <TextBlock Text="Выйти" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                    <ic:SymbolIcon
+                                                        FontSize="13"
+                                                        Foreground="#f87171"
+                                                        Symbol="SignOut" />
+                                                    <TextBlock
+                                                        VerticalAlignment="Center"
+                                                        FontSize="11"
+                                                        FontWeight="SemiBold"
+                                                        Text="Выйти" />
                                                 </StackPanel>
                                             </Button>
                                         </StackPanel>
 
-                                        <TextBlock Text="Никнейм не может быть пустым" 
-                                                   FontSize="11" 
-                                                   Foreground="#f87171" 
-                                                   Margin="2,2,0,0" 
-                                                   IsVisible="{Binding !IsNicknameValid}" />
+                                        <TextBlock
+                                            Margin="2,2,0,0"
+                                            FontSize="11"
+                                            Foreground="#f87171"
+                                            IsVisible="{Binding !IsNicknameValid}"
+                                            Text="Никнейм не может быть пустым" />
                                     </StackPanel>
 
-                                    <Button Grid.Row="0" Grid.Column="1" 
-                                            Classes="PlayBtn" 
-                                            Command="{Binding PlayCommand}" 
-                                            IsEnabled="{Binding CanPlay}"
-                                            ToolTip.Tip="{Binding PlayButtonToolTip}"
-                                            VerticalAlignment="Center">
+                                    <Button
+                                        Grid.Row="0"
+                                        Grid.Column="1"
+                                        VerticalAlignment="Center"
+                                        Classes="PlayBtn"
+                                        Command="{Binding PlayCommand}"
+                                        IsEnabled="{Binding CanPlay}"
+                                        ToolTip.Tip="{Binding PlayButtonToolTip}">
                                         <StackPanel Orientation="Horizontal" Spacing="10">
-                                            <ic:SymbolIcon Symbol="Play" FontSize="18" />
-                                            <TextBlock Text="И Г Р А Т Ь" FontSize="15" FontWeight="Bold" VerticalAlignment="Center" />
+                                            <ic:SymbolIcon FontSize="18" Symbol="Play" />
+                                            <TextBlock
+                                                VerticalAlignment="Center"
+                                                FontSize="15"
+                                                FontWeight="Bold"
+                                                Text="И Г Р А Т Ь" />
                                         </StackPanel>
                                     </Button>
 
-                                    <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Margin="0,20,0,0" 
-                                                IsVisible="{Binding IsProgressVisible}" 
-                                                Spacing="8">
+                                    <StackPanel
+                                        Grid.Row="1"
+                                        Grid.ColumnSpan="2"
+                                        Margin="0,20,0,0"
+                                        IsVisible="{Binding IsProgressVisible}"
+                                        Spacing="8">
                                         <Grid ColumnDefinitions="*, Auto">
-                                            <TextBlock Grid.Column="0" Text="{Binding StatusMessage}" FontSize="12" Foreground="#60cdff" FontWeight="SemiBold" />
-                                            <TextBlock Grid.Column="1" Text="{Binding ProgressPercentage, StringFormat='{}{0:F0}%'}" FontSize="12" Foreground="#60cdff" FontWeight="Bold" />
+                                            <TextBlock
+                                                Grid.Column="0"
+                                                FontSize="12"
+                                                FontWeight="SemiBold"
+                                                Foreground="#60cdff"
+                                                Text="{Binding StatusMessage}" />
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                FontSize="12"
+                                                FontWeight="Bold"
+                                                Foreground="#60cdff"
+                                                Text="{Binding ProgressPercentage, StringFormat='{}{0:F0}%'}" />
                                         </Grid>
-                                        <ProgressBar Value="{Binding ProgressPercentage}" 
-                                                     Maximum="100" 
-                                                     Height="6" 
-                                                     CornerRadius="3" 
-                                                     Foreground="#0078d4" 
-                                                     Background="#333333" />
+                                        <ProgressBar
+                                            Height="6"
+                                            Background="#333333"
+                                            CornerRadius="3"
+                                            Foreground="#0078d4"
+                                            Maximum="100"
+                                            Value="{Binding ProgressPercentage}" />
                                     </StackPanel>
 
-                                    <TextBlock Grid.Row="2" Grid.ColumnSpan="2" Margin="0,14,0,0" 
-                                               Text="{Binding StatusMessage}" 
-                                               FontSize="12" 
-                                               Foreground="#888888" 
-                                               IsVisible="{Binding !IsProgressVisible}" />
+                                    <TextBlock
+                                        Grid.Row="2"
+                                        Grid.ColumnSpan="2"
+                                        Margin="0,14,0,0"
+                                        FontSize="12"
+                                        Foreground="#888888"
+                                        IsVisible="{Binding !IsProgressVisible}"
+                                        Text="{Binding StatusMessage}" />
                                 </Grid>
                             </Border>
 
-                            <Border Classes="Card" Padding="16">
+                            <Border Padding="16" Classes="Card">
                                 <Grid ColumnDefinitions="Auto, *, Auto">
-                                    <ic:SymbolIcon Grid.Column="0" Symbol="WeatherSunny" FontSize="22" Foreground="#f59e0b" VerticalAlignment="Center" Margin="0,0,14,0" />
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
+                                    <ic:SymbolIcon
+                                        Grid.Column="0"
+                                        Margin="0,0,14,0"
+                                        VerticalAlignment="Center"
+                                        FontSize="22"
+                                        Foreground="#f59e0b"
+                                        Symbol="WeatherSunny" />
+                                    <StackPanel
+                                        Grid.Column="1"
+                                        VerticalAlignment="Center"
+                                        Spacing="3">
                                         <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <TextBlock Text="Шейдеры Iris (Графика)" FontWeight="SemiBold" FontSize="13" Foreground="#ffffff" VerticalAlignment="Center" />
-                                            <Border Background="#1f2937" CornerRadius="4" Padding="6,1" VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding SelectedShaderPack}" FontSize="10" Foreground="#9ca3af" />
+                                            <TextBlock
+                                                VerticalAlignment="Center"
+                                                FontSize="13"
+                                                FontWeight="SemiBold"
+                                                Foreground="#ffffff"
+                                                Text="Шейдеры Iris (Графика)" />
+                                            <Border
+                                                Padding="6,1"
+                                                VerticalAlignment="Center"
+                                                Background="#1f2937"
+                                                CornerRadius="4">
+                                                <TextBlock
+                                                    FontSize="10"
+                                                    Foreground="#9ca3af"
+                                                    Text="{Binding SelectedShaderPack}" />
                                             </Border>
                                         </StackPanel>
-                                        <TextBlock Text="Синхронизируется с игрой (горячая клавиша K). При отключении в игре выключится автоматически." FontSize="11" Foreground="#888888" />
+                                        <TextBlock
+                                            FontSize="11"
+                                            Foreground="#888888"
+                                            Text="Синхронизируется с игрой (горячая клавиша K). При отключении в игре выключится автоматически." />
                                     </StackPanel>
-                                    <ToggleSwitch Grid.Column="2" 
-                                                  IsChecked="{Binding ShadersEnabled}" 
-                                                  OnContent="Вкл" 
-                                                  OffContent="Выкл" 
-                                                  VerticalAlignment="Center" />
+                                    <ToggleSwitch
+                                        Grid.Column="2"
+                                        VerticalAlignment="Center"
+                                        IsChecked="{Binding ShadersEnabled}"
+                                        OffContent="Выкл"
+                                        OnContent="Вкл" />
                                 </Grid>
                             </Border>
 
                             <Grid ColumnDefinitions="*, *">
-                                <Border Grid.Column="0" Classes="Card" Margin="0,0,8,0">
+                                <Border
+                                    Grid.Column="0"
+                                    Margin="0,0,8,0"
+                                    Classes="Card">
                                     <StackPanel Spacing="8">
                                         <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <ic:SymbolIcon Symbol="ArrowSync" FontSize="16" Foreground="#60cdff" />
-                                            <TextBlock Text="Авто-синхронизация модов" FontWeight="SemiBold" FontSize="13" Foreground="#ffffff" />
+                                            <ic:SymbolIcon
+                                                FontSize="16"
+                                                Foreground="#60cdff"
+                                                Symbol="ArrowSync" />
+                                            <TextBlock
+                                                FontSize="13"
+                                                FontWeight="SemiBold"
+                                                Foreground="#ffffff"
+                                                Text="Авто-синхронизация модов" />
                                         </StackPanel>
-                                        <TextBlock Text="При добавлении нового мода на сервере лаунчер автоматически скачает и настроит его перед запуском." 
-                                                   FontSize="12" Foreground="#888888" TextWrapping="Wrap" />
+                                        <TextBlock
+                                            FontSize="12"
+                                            Foreground="#888888"
+                                            Text="При добавлении нового мода на сервере лаунчер автоматически скачает и настроит его перед запуском."
+                                            TextWrapping="Wrap" />
                                     </StackPanel>
                                 </Border>
 
-                                <Border Grid.Column="1" Classes="Card" Margin="8,0,0,0">
+                                <Border
+                                    Grid.Column="1"
+                                    Margin="8,0,0,0"
+                                    Classes="Card">
                                     <StackPanel Spacing="8">
                                         <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <ic:SymbolIcon Symbol="Cloud" FontSize="16" Foreground="#4ade80" />
-                                            <TextBlock Text="Прямой вход без задержек" FontWeight="SemiBold" FontSize="13" Foreground="#ffffff" />
+                                            <ic:SymbolIcon
+                                                FontSize="16"
+                                                Foreground="#4ade80"
+                                                Symbol="Cloud" />
+                                            <TextBlock
+                                                FontSize="13"
+                                                FontWeight="SemiBold"
+                                                Foreground="#ffffff"
+                                                Text="Прямой вход без задержек" />
                                         </StackPanel>
-                                        <TextBlock Text="Лаунчер мгновенно подключает вас к mc.obxodka.one без необходимости искать сервер в общем списке." 
-                                                   FontSize="12" Foreground="#888888" TextWrapping="Wrap" />
+                                        <TextBlock
+                                            FontSize="12"
+                                            Foreground="#888888"
+                                            Text="Лаунчер мгновенно подключает вас к mc.obxodka.one без необходимости искать сервер в общем списке."
+                                            TextWrapping="Wrap" />
                                     </StackPanel>
                                 </Border>
                             </Grid>
@@ -482,55 +896,117 @@
                     </ScrollViewer>
 
                     <Grid RowDefinitions="Auto, *">
-                        <Grid Grid.Row="0" ColumnDefinitions="*, Auto" Margin="0,0,0,16">
+                        <Grid
+                            Grid.Row="0"
+                            Margin="0,0,0,16"
+                            ColumnDefinitions="*, Auto">
                             <StackPanel Grid.Column="0" Spacing="4">
-                                <TextBlock Text="Моды сборки Fabric 1.21.1" FontSize="20" FontWeight="Bold" Foreground="#ffffff" />
-                                <TextBlock Text="Список синхронизированных модификаций с сервера mc.obxodka.one:25566" FontSize="12" Foreground="#888888" />
+                                <TextBlock
+                                    FontSize="20"
+                                    FontWeight="Bold"
+                                    Foreground="#ffffff"
+                                    Text="Моды сборки Fabric 1.21.1" />
+                                <TextBlock
+                                    FontSize="12"
+                                    Foreground="#888888"
+                                    Text="Список синхронизированных модификаций с сервера mc.obxodka.one:25566" />
                             </StackPanel>
-                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                            <StackPanel
+                                Grid.Column="1"
+                                Orientation="Horizontal"
+                                Spacing="8">
                                 <Button Classes="SecondaryBtn" Command="{Binding LoadModsListCommand}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <ic:SymbolIcon Symbol="ArrowSync" FontSize="14" Foreground="#60cdff" />
-                                        <TextBlock Text="Проверить моды" FontSize="12" VerticalAlignment="Center" />
+                                        <ic:SymbolIcon
+                                            FontSize="14"
+                                            Foreground="#60cdff"
+                                            Symbol="ArrowSync" />
+                                        <TextBlock
+                                            VerticalAlignment="Center"
+                                            FontSize="12"
+                                            Text="Проверить моды" />
                                     </StackPanel>
                                 </Button>
                                 <Button Classes="SecondaryBtn" Command="{Binding OpenModsFolderCommand}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <ic:SymbolIcon Symbol="FolderOpen" FontSize="14" Foreground="#a78bfa" />
-                                        <TextBlock Text="Папка mods" FontSize="12" VerticalAlignment="Center" />
+                                        <ic:SymbolIcon
+                                            FontSize="14"
+                                            Foreground="#a78bfa"
+                                            Symbol="FolderOpen" />
+                                        <TextBlock
+                                            VerticalAlignment="Center"
+                                            FontSize="12"
+                                            Text="Папка mods" />
                                     </StackPanel>
                                 </Button>
                             </StackPanel>
                         </Grid>
 
-                        <Border Grid.Row="1" Classes="Card" Padding="12">
+                        <Border
+                            Grid.Row="1"
+                            Padding="12"
+                            Classes="Card">
                             <ScrollViewer VerticalScrollBarVisibility="Hidden">
                                 <ItemsControl ItemsSource="{Binding Mods}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="vm:ModItemViewModel">
-                                            <Border Background="#252525" CornerRadius="6" Padding="14,10" Margin="0,0,0,6" BorderBrush="#333333" BorderThickness="1">
+                                            <Border
+                                                Margin="0,0,0,6"
+                                                Padding="14,10"
+                                                Background="#252525"
+                                                BorderBrush="#333333"
+                                                BorderThickness="1"
+                                                CornerRadius="6">
                                                 <Grid ColumnDefinitions="Auto, *, Auto, Auto, Auto">
-                                                    <ic:SymbolIcon Grid.Column="0" Symbol="Cube" FontSize="18" Foreground="#60cdff" VerticalAlignment="Center" Margin="0,0,12,0" />
+                                                    <ic:SymbolIcon
+                                                        Grid.Column="0"
+                                                        Margin="0,0,12,0"
+                                                        VerticalAlignment="Center"
+                                                        FontSize="18"
+                                                        Foreground="#60cdff"
+                                                        Symbol="Cube" />
                                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" Foreground="#ffffff" />
-                                                        <TextBlock Text="{Binding FileName}" FontSize="11" Foreground="#777777" />
+                                                        <TextBlock
+                                                            FontSize="13"
+                                                            FontWeight="SemiBold"
+                                                            Foreground="#ffffff"
+                                                            Text="{Binding Name}" />
+                                                        <TextBlock
+                                                            FontSize="11"
+                                                            Foreground="#777777"
+                                                            Text="{Binding FileName}" />
                                                     </StackPanel>
-                                                    <TextBlock Grid.Column="2" Text="{Binding SizeFormatted}" FontSize="12" Foreground="#888888" VerticalAlignment="Center" Margin="14,0" />
-                                                    <Border Grid.Column="3" 
-                                                            Background="{Binding StatusBackground}" 
-                                                            CornerRadius="4" 
-                                                            Padding="8,3" 
-                                                            Margin="0,0,10,0" 
-                                                            VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding Status}" FontSize="11" FontWeight="SemiBold" Foreground="{Binding StatusForeground}" />
+                                                    <TextBlock
+                                                        Grid.Column="2"
+                                                        Margin="14,0"
+                                                        VerticalAlignment="Center"
+                                                        FontSize="12"
+                                                        Foreground="#888888"
+                                                        Text="{Binding SizeFormatted}" />
+                                                    <Border
+                                                        Grid.Column="3"
+                                                        Margin="0,0,10,0"
+                                                        Padding="8,3"
+                                                        VerticalAlignment="Center"
+                                                        Background="{Binding StatusBackground}"
+                                                        CornerRadius="4">
+                                                        <TextBlock
+                                                            FontSize="11"
+                                                            FontWeight="SemiBold"
+                                                            Foreground="{Binding StatusForeground}"
+                                                            Text="{Binding Status}" />
                                                     </Border>
-                                                    <Button Grid.Column="4" 
-                                                            Classes="SecondaryBtn" 
-                                                            Padding="8,4" 
-                                                            Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ToggleModCommand}" 
-                                                            CommandParameter="{Binding}"
-                                                            VerticalAlignment="Center">
-                                                        <ic:SymbolIcon Symbol="Power" FontSize="12" Foreground="#60cdff" />
+                                                    <Button
+                                                        Grid.Column="4"
+                                                        Padding="8,4"
+                                                        VerticalAlignment="Center"
+                                                        Classes="SecondaryBtn"
+                                                        Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ToggleModCommand}"
+                                                        CommandParameter="{Binding}">
+                                                        <ic:SymbolIcon
+                                                            FontSize="12"
+                                                            Foreground="#60cdff"
+                                                            Symbol="Power" />
                                                     </Button>
                                                 </Grid>
                                             </Border>
@@ -544,75 +1020,134 @@
                     <ScrollViewer VerticalScrollBarVisibility="Hidden">
                         <StackPanel Spacing="18">
                             <StackPanel Spacing="4">
-                                <TextBlock Text="Управление хранилищем и дисками" FontSize="20" FontWeight="Bold" Foreground="#ffffff" />
-                                <TextBlock Text="Выберите накопитель для установки игры, чтобы не переполнять системный диск C:" FontSize="12" Foreground="#888888" />
+                                <TextBlock
+                                    FontSize="20"
+                                    FontWeight="Bold"
+                                    Foreground="#ffffff"
+                                    Text="Управление хранилищем и дисками" />
+                                <TextBlock
+                                    FontSize="12"
+                                    Foreground="#888888"
+                                    Text="Выберите накопитель для установки игры, чтобы не переполнять системный диск C:" />
                             </StackPanel>
 
-                            <Border Classes="Card" Padding="18">
+                            <Border Padding="18" Classes="Card">
                                 <StackPanel Spacing="12">
-                                    <TextBlock Text="Текущая папка установки игры" FontWeight="SemiBold" FontSize="13" Foreground="#ffffff" />
-                                    <Grid ColumnDefinitions="*, Auto" Margin="0,4,0,0">
-                                        <TextBox Grid.Column="0" 
-                                                 Text="{Binding InstallationPath}" 
-                                                 Padding="10,8" 
-                                                 CornerRadius="6" 
-                                                 Background="#222222" 
-                                                 BorderBrush="#3d3d3d" />
-                                        <Button Grid.Column="1" 
-                                                Classes="SecondaryBtn" 
-                                                Margin="10,0,0,0" 
-                                                Name="BrowseFolderBtn"
-                                                Click="OnBrowseFolderClickedAsync">
+                                    <TextBlock
+                                        FontSize="13"
+                                        FontWeight="SemiBold"
+                                        Foreground="#ffffff"
+                                        Text="Текущая папка установки игры" />
+                                    <Grid Margin="0,4,0,0" ColumnDefinitions="*, Auto">
+                                        <TextBox
+                                            Grid.Column="0"
+                                            Padding="10,8"
+                                            Background="#222222"
+                                            BorderBrush="#3d3d3d"
+                                            CornerRadius="6"
+                                            Text="{Binding InstallationPath}" />
+                                        <Button
+                                            Name="BrowseFolderBtn"
+                                            Grid.Column="1"
+                                            Margin="10,0,0,0"
+                                            Classes="SecondaryBtn"
+                                            Click="OnBrowseFolderClickedAsync">
                                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                                <ic:SymbolIcon Symbol="FolderOpen" FontSize="14" Foreground="#38bdf8" />
-                                                <TextBlock Text="Выбрать диск/папку..." FontSize="12" VerticalAlignment="Center" />
+                                                <ic:SymbolIcon
+                                                    FontSize="14"
+                                                    Foreground="#38bdf8"
+                                                    Symbol="FolderOpen" />
+                                                <TextBlock
+                                                    VerticalAlignment="Center"
+                                                    FontSize="12"
+                                                    Text="Выбрать диск/папку..." />
                                             </StackPanel>
                                         </Button>
                                     </Grid>
 
-                                    <Button Classes="SecondaryBtn" 
-                                            HorizontalAlignment="Left" 
-                                            Command="{Binding OpenGameFolderCommand}">
+                                    <Button
+                                        HorizontalAlignment="Left"
+                                        Classes="SecondaryBtn"
+                                        Command="{Binding OpenGameFolderCommand}">
                                         <StackPanel Orientation="Horizontal" Spacing="6">
-                                            <ic:SymbolIcon Symbol="Folder" FontSize="14" Foreground="#d0d0d0" />
-                                            <TextBlock Text="Открыть папку в проводнике" FontSize="11" VerticalAlignment="Center" />
+                                            <ic:SymbolIcon
+                                                FontSize="14"
+                                                Foreground="#d0d0d0"
+                                                Symbol="Folder" />
+                                            <TextBlock
+                                                VerticalAlignment="Center"
+                                                FontSize="11"
+                                                Text="Открыть папку в проводнике" />
                                         </StackPanel>
                                     </Button>
                                 </StackPanel>
                             </Border>
 
-                            <Border Classes="Card" Padding="18">
+                            <Border Padding="18" Classes="Card">
                                 <StackPanel Spacing="14">
                                     <Grid ColumnDefinitions="*, Auto">
-                                        <TextBlock Grid.Column="0" Text="Доступные накопители на компьютере" FontWeight="SemiBold" FontSize="13" Foreground="#ffffff" />
-                                        <Button Grid.Column="1" Classes="SecondaryBtn" Padding="8,4" Command="{Binding RefreshDrivesCommand}">
-                                            <ic:SymbolIcon Symbol="ArrowSync" FontSize="12" Foreground="#60cdff" />
+                                        <TextBlock
+                                            Grid.Column="0"
+                                            FontSize="13"
+                                            FontWeight="SemiBold"
+                                            Foreground="#ffffff"
+                                            Text="Доступные накопители на компьютере" />
+                                        <Button
+                                            Grid.Column="1"
+                                            Padding="8,4"
+                                            Classes="SecondaryBtn"
+                                            Command="{Binding RefreshDrivesCommand}">
+                                            <ic:SymbolIcon
+                                                FontSize="12"
+                                                Foreground="#60cdff"
+                                                Symbol="ArrowSync" />
                                         </Button>
                                     </Grid>
 
                                     <ItemsControl ItemsSource="{Binding Drives}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate DataType="models:DriveStorageInfo">
-                                                <Border Background="#252525" CornerRadius="6" Padding="14" Margin="0,0,0,8" BorderBrush="#383838" BorderThickness="1">
+                                                <Border
+                                                    Margin="0,0,0,8"
+                                                    Padding="14"
+                                                    Background="#252525"
+                                                    BorderBrush="#383838"
+                                                    BorderThickness="1"
+                                                    CornerRadius="6">
                                                     <Grid RowDefinitions="Auto, Auto">
-                                                        <Grid Grid.Row="0" ColumnDefinitions="Auto, *, Auto" Margin="0,0,0,8">
-                                                            <ic:SymbolIcon Grid.Column="0" Symbol="HardDrive" FontSize="18" Foreground="#38bdf8" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                                        <Grid
+                                                            Grid.Row="0"
+                                                            Margin="0,0,0,8"
+                                                            ColumnDefinitions="Auto, *, Auto">
+                                                            <ic:SymbolIcon
+                                                                Grid.Column="0"
+                                                                Margin="0,0,10,0"
+                                                                VerticalAlignment="Center"
+                                                                FontSize="18"
+                                                                Foreground="#38bdf8"
+                                                                Symbol="HardDrive" />
                                                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                                <TextBlock Text="{Binding DisplayText}" FontWeight="SemiBold" FontSize="12" Foreground="#ffffff" />
+                                                                <TextBlock
+                                                                    FontSize="12"
+                                                                    FontWeight="SemiBold"
+                                                                    Foreground="#ffffff"
+                                                                    Text="{Binding DisplayText}" />
                                                             </StackPanel>
-                                                            <TextBlock Grid.Column="2" 
-                                                                       Text="{Binding PercentUsed, StringFormat='Занято {0:F0}%'}" 
-                                                                       FontSize="11" 
-                                                                       Foreground="#888888" 
-                                                                       VerticalAlignment="Center" />
+                                                            <TextBlock
+                                                                Grid.Column="2"
+                                                                VerticalAlignment="Center"
+                                                                FontSize="11"
+                                                                Foreground="#888888"
+                                                                Text="{Binding PercentUsed, StringFormat='Занято {0:F0}%'}" />
                                                         </Grid>
-                                                        <ProgressBar Grid.Row="1" 
-                                                                     Value="{Binding PercentUsed}" 
-                                                                     Maximum="100" 
-                                                                     Height="6" 
-                                                                     CornerRadius="3" 
-                                                                     Foreground="#38bdf8" 
-                                                                     Background="#333333" />
+                                                        <ProgressBar
+                                                            Grid.Row="1"
+                                                            Height="6"
+                                                            Background="#333333"
+                                                            CornerRadius="3"
+                                                            Foreground="#38bdf8"
+                                                            Maximum="100"
+                                                            Value="{Binding PercentUsed}" />
                                                     </Grid>
                                                 </Border>
                                             </DataTemplate>
@@ -625,253 +1160,489 @@
 
                     <ScrollViewer VerticalScrollBarVisibility="Hidden">
                         <StackPanel Spacing="14">
-                            <TextBlock Text="Параметры и Производительность" FontSize="20" FontWeight="Bold" Foreground="#ffffff" Margin="0,0,0,8" />
+                            <TextBlock
+                                Margin="0,0,0,8"
+                                FontSize="20"
+                                FontWeight="Bold"
+                                Foreground="#ffffff"
+                                Text="Параметры и Производительность" />
 
-                            <Border Classes="Card" Padding="18">
+                            <Border Padding="18" Classes="Card">
                                 <StackPanel Spacing="12">
                                     <Grid ColumnDefinitions="*, Auto">
                                         <StackPanel Grid.Column="0" Spacing="4">
-                                            <TextBlock Text="Тип авторизации и учетная запись" FontWeight="SemiBold" FontSize="13" Foreground="#ffffff" />
-                                            <TextBlock Text="{Binding AuthModeBadgeText, StringFormat='Текущий режим: {0}'}" FontSize="11" Foreground="#4ade80" FontWeight="SemiBold" />
+                                            <TextBlock
+                                                FontSize="13"
+                                                FontWeight="SemiBold"
+                                                Foreground="#ffffff"
+                                                Text="Тип авторизации и учетная запись" />
+                                            <TextBlock
+                                                FontSize="11"
+                                                FontWeight="SemiBold"
+                                                Foreground="#4ade80"
+                                                Text="{Binding AuthModeBadgeText, StringFormat='Текущий режим: {0}'}" />
                                         </StackPanel>
-                                        <Button Grid.Column="1" 
-                                                Classes="PlayBtn" 
-                                                Padding="14,6" 
-                                                FontSize="12" 
-                                                Command="{Binding LoginMicrosoftCommand}" 
-                                                IsVisible="{Binding !IsMicrosoftAuth}">
+                                        <Button
+                                            Grid.Column="1"
+                                            Padding="14,6"
+                                            Classes="PlayBtn"
+                                            Command="{Binding LoginMicrosoftCommand}"
+                                            FontSize="12"
+                                            IsVisible="{Binding !IsMicrosoftAuth}">
                                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <ic:SymbolIcon Symbol="XboxController" FontSize="15" />
-                                                <TextBlock Text="Войти через Microsoft" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                <ic:SymbolIcon FontSize="15" Symbol="XboxController" />
+                                                <TextBlock
+                                                    VerticalAlignment="Center"
+                                                    FontWeight="SemiBold"
+                                                    Text="Войти через Microsoft" />
                                             </StackPanel>
                                         </Button>
-                                        <Button Grid.Column="1" 
-                                                Classes="SecondaryBtn" 
-                                                Padding="14,6" 
-                                                FontSize="12" 
-                                                Command="{Binding LogoutMicrosoftCommand}" 
-                                                IsVisible="{Binding IsMicrosoftAuth}">
+                                        <Button
+                                            Grid.Column="1"
+                                            Padding="14,6"
+                                            Classes="SecondaryBtn"
+                                            Command="{Binding LogoutMicrosoftCommand}"
+                                            FontSize="12"
+                                            IsVisible="{Binding IsMicrosoftAuth}">
                                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <ic:SymbolIcon Symbol="SignOut" FontSize="15" Foreground="#f87171" />
-                                                <TextBlock Text="Выйти из Microsoft" VerticalAlignment="Center" />
+                                                <ic:SymbolIcon
+                                                    FontSize="15"
+                                                    Foreground="#f87171"
+                                                    Symbol="SignOut" />
+                                                <TextBlock VerticalAlignment="Center" Text="Выйти из Microsoft" />
                                             </StackPanel>
                                         </Button>
                                     </Grid>
-                                    <TextBlock Text="Официальная авторизация Microsoft позволяет заходить с вашей лицензией, синхронизировать никнейм и скины Mojang. В офлайн-режиме используется указанный никнейм." FontSize="11" Foreground="#777777" TextWrapping="Wrap" />
+                                    <TextBlock
+                                        FontSize="11"
+                                        Foreground="#777777"
+                                        Text="Официальная авторизация Microsoft позволяет заходить с вашей лицензией, синхронизировать никнейм и скины Mojang. В офлайн-режиме используется указанный никнейм."
+                                        TextWrapping="Wrap" />
                                 </StackPanel>
                             </Border>
 
-                            <Border Classes="Card" Padding="18">
+                            <Border Padding="18" Classes="Card">
                                 <StackPanel Spacing="12">
-                                    <TextBlock Text="Персонализация и Скин игрока" FontWeight="SemiBold" FontSize="13" Foreground="#ffffff" />
-                                    <Grid ColumnDefinitions="Auto, *, Auto" Margin="0,4,0,0">
-                                        <Border Grid.Column="0" Background="#242424" CornerRadius="8" Width="54" Height="54" Margin="0,0,14,0" ClipToBounds="True" BorderBrush="#3a3a3a" BorderThickness="1">
-                                            <Image Source="{Binding AvatarBitmap}" Width="54" Height="54" Stretch="UniformToFill" />
+                                    <TextBlock
+                                        FontSize="13"
+                                        FontWeight="SemiBold"
+                                        Foreground="#ffffff"
+                                        Text="Персонализация и Скин игрока" />
+                                    <Grid Margin="0,4,0,0" ColumnDefinitions="Auto, *, Auto">
+                                        <Border
+                                            Grid.Column="0"
+                                            Width="54"
+                                            Height="54"
+                                            Margin="0,0,14,0"
+                                            Background="#242424"
+                                            BorderBrush="#3a3a3a"
+                                            BorderThickness="1"
+                                            ClipToBounds="True"
+                                            CornerRadius="8">
+                                            <Image
+                                                Width="54"
+                                                Height="54"
+                                                Source="{Binding AvatarBitmap}"
+                                                Stretch="UniformToFill" />
                                         </Border>
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
-                                            <TextBlock Text="Файл скина (PNG 64x64)" FontSize="11" Foreground="#888888" />
-                                            <TextBox Text="{Binding Settings.SelectedSkinPath}" 
-                                                     PlaceholderText="Скин по умолчанию (Steve/Alex)" 
-                                                     Padding="10,6" 
-                                                     CornerRadius="6" 
-                                                     Background="#242424" 
-                                                     BorderBrush="#3d3d3d" 
-                                                     IsReadOnly="True" />
+                                        <StackPanel
+                                            Grid.Column="1"
+                                            VerticalAlignment="Center"
+                                            Spacing="4">
+                                            <TextBlock
+                                                FontSize="11"
+                                                Foreground="#888888"
+                                                Text="Файл скина (PNG 64x64)" />
+                                            <TextBox
+                                                Padding="10,6"
+                                                Background="#242424"
+                                                BorderBrush="#3d3d3d"
+                                                CornerRadius="6"
+                                                IsReadOnly="True"
+                                                PlaceholderText="Скин по умолчанию (Steve/Alex)"
+                                                Text="{Binding Settings.SelectedSkinPath}" />
                                         </StackPanel>
-                                        <Button Grid.Column="2" 
-                                                Classes="SecondaryBtn" 
-                                                Margin="10,18,0,0" 
-                                                Click="OnSelectSkinClickedAsync"
-                                                VerticalAlignment="Center">
+                                        <Button
+                                            Grid.Column="2"
+                                            Margin="10,18,0,0"
+                                            VerticalAlignment="Center"
+                                            Classes="SecondaryBtn"
+                                            Click="OnSelectSkinClickedAsync">
                                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                                <ic:SymbolIcon Symbol="Image" FontSize="14" Foreground="#4ade80" />
-                                                <TextBlock Text="Выбрать..." FontSize="12" VerticalAlignment="Center" />
+                                                <ic:SymbolIcon
+                                                    FontSize="14"
+                                                    Foreground="#4ade80"
+                                                    Symbol="Image" />
+                                                <TextBlock
+                                                    VerticalAlignment="Center"
+                                                    FontSize="12"
+                                                    Text="Выбрать..." />
                                             </StackPanel>
                                         </Button>
                                     </Grid>
-                                    <TextBlock Text="Выбранный скин будет отображаться на сервере DevByte Homelab через FabricTailor." FontSize="11" Foreground="#777777" />
+                                    <TextBlock
+                                        FontSize="11"
+                                        Foreground="#777777"
+                                        Text="Выбранный скин будет отображаться на сервере DevByte Homelab через FabricTailor." />
                                 </StackPanel>
                             </Border>
 
-                            <Border Classes="Card" Padding="18">
+                            <Border Padding="18" Classes="Card">
                                 <StackPanel Spacing="10">
                                     <Grid ColumnDefinitions="*, Auto">
-                                        <TextBlock Grid.Column="0" Text="Выделение оперативной памяти (RAM)" FontWeight="SemiBold" FontSize="13" Foreground="#ffffff" />
-                                        <TextBlock Grid.Column="1" Text="{Binding AllocatedRamGb, StringFormat='{}{0} ГБ'}" FontWeight="Bold" FontSize="13" Foreground="#60cdff" />
+                                        <TextBlock
+                                            Grid.Column="0"
+                                            FontSize="13"
+                                            FontWeight="SemiBold"
+                                            Foreground="#ffffff"
+                                            Text="Выделение оперативной памяти (RAM)" />
+                                        <TextBlock
+                                            Grid.Column="1"
+                                            FontSize="13"
+                                            FontWeight="Bold"
+                                            Foreground="#60cdff"
+                                            Text="{Binding AllocatedRamGb, StringFormat='{}{0} ГБ'}" />
                                     </Grid>
-                                    <Slider Minimum="2" Maximum="16" Value="{Binding AllocatedRamGb}" TickFrequency="1" IsSnapToTickEnabled="True" />
-                                    <TextBlock Text="Рекомендуется 6 ГБ для комфортной игры с модами Fabric 1.21.1 без фризов." FontSize="11" Foreground="#777777" />
+                                    <Slider
+                                        IsSnapToTickEnabled="True"
+                                        Maximum="16"
+                                        Minimum="2"
+                                        TickFrequency="1"
+                                        Value="{Binding AllocatedRamGb}" />
+                                    <TextBlock
+                                        FontSize="11"
+                                        Foreground="#777777"
+                                        Text="Рекомендуется 6 ГБ для комфортной игры с модами Fabric 1.21.1 без фризов." />
                                 </StackPanel>
                             </Border>
 
-                            <Border Classes="Card" Padding="18">
+                            <Border Padding="18" Classes="Card">
                                 <StackPanel Spacing="12">
-                                    <TextBlock Text="Параметры подключения к серверу" FontWeight="SemiBold" FontSize="13" Foreground="#ffffff" />
-                                    <Grid ColumnDefinitions="*, 120" Margin="0,4,0,0">
-                                        <StackPanel Grid.Column="0" Spacing="4" Margin="0,0,10,0">
-                                            <TextBlock Text="Адрес сервера (Хост)" FontSize="11" Foreground="#888888" />
-                                            <TextBox Text="{Binding Settings.ServerHost}" Padding="10,8" CornerRadius="6" Background="#242424" BorderBrush="#3d3d3d" />
+                                    <TextBlock
+                                        FontSize="13"
+                                        FontWeight="SemiBold"
+                                        Foreground="#ffffff"
+                                        Text="Параметры подключения к серверу" />
+                                    <Grid Margin="0,4,0,0" ColumnDefinitions="*, 120">
+                                        <StackPanel
+                                            Grid.Column="0"
+                                            Margin="0,0,10,0"
+                                            Spacing="4">
+                                            <TextBlock
+                                                FontSize="11"
+                                                Foreground="#888888"
+                                                Text="Адрес сервера (Хост)" />
+                                            <TextBox
+                                                Padding="10,8"
+                                                Background="#242424"
+                                                BorderBrush="#3d3d3d"
+                                                CornerRadius="6"
+                                                Text="{Binding Settings.ServerHost}" />
                                         </StackPanel>
                                         <StackPanel Grid.Column="1" Spacing="4">
-                                            <TextBlock Text="Порт" FontSize="11" Foreground="#888888" />
-                                            <TextBox Text="{Binding Settings.ServerPort}" Padding="10,8" CornerRadius="6" Background="#242424" BorderBrush="#3d3d3d" />
+                                            <TextBlock
+                                                FontSize="11"
+                                                Foreground="#888888"
+                                                Text="Порт" />
+                                            <TextBox
+                                                Padding="10,8"
+                                                Background="#242424"
+                                                BorderBrush="#3d3d3d"
+                                                CornerRadius="6"
+                                                Text="{Binding Settings.ServerPort}" />
                                         </StackPanel>
                                     </Grid>
-                                    <CheckBox Content="Автоматически входить на сервер при старте" 
-                                              IsChecked="{Binding Settings.AutoConnectServer}" 
-                                              Foreground="#cccccc" 
-                                              FontSize="12" />
+                                    <CheckBox
+                                        Content="Автоматически входить на сервер при старте"
+                                        FontSize="12"
+                                        Foreground="#cccccc"
+                                        IsChecked="{Binding Settings.AutoConnectServer}" />
                                 </StackPanel>
                             </Border>
 
-                            <Border Classes="Card" Padding="18">
+                            <Border Padding="18" Classes="Card">
                                 <StackPanel Spacing="8">
-                                    <TextBlock Text="Пользовательский путь к Java (Опционально)" FontWeight="SemiBold" FontSize="13" Foreground="#ffffff" />
-                                    <TextBox Text="{Binding Settings.CustomJavaPath}" 
-                                             PlaceholderText="Оставьте пустым для автоопределения OpenJDK 21" 
-                                             Padding="10,8" 
-                                             CornerRadius="6" 
-                                             Background="#242424" 
-                                             BorderBrush="#3d3d3d" />
-                                    <TextBlock Text="По умолчанию CmlLib автоматически скачивает и использует официальную совместимую Java 21." 
-                                               FontSize="11" Foreground="#777777" />
+                                    <TextBlock
+                                        FontSize="13"
+                                        FontWeight="SemiBold"
+                                        Foreground="#ffffff"
+                                        Text="Пользовательский путь к Java (Опционально)" />
+                                    <TextBox
+                                        Padding="10,8"
+                                        Background="#242424"
+                                        BorderBrush="#3d3d3d"
+                                        CornerRadius="6"
+                                        PlaceholderText="Оставьте пустым для автоопределения OpenJDK 21"
+                                        Text="{Binding Settings.CustomJavaPath}" />
+                                    <TextBlock
+                                        FontSize="11"
+                                        Foreground="#777777"
+                                        Text="По умолчанию CmlLib автоматически скачивает и использует официальную совместимую Java 21." />
                                 </StackPanel>
                             </Border>
 
-                            <Border Classes="Card" Padding="18">
+                            <Border Padding="18" Classes="Card">
                                 <StackPanel Spacing="14">
                                     <Grid ColumnDefinitions="*, Auto">
                                         <StackPanel Grid.Column="0" Spacing="4">
-                                            <TextBlock Text="Графика и Шейдеры (Iris + Sodium)" FontWeight="SemiBold" FontSize="13" Foreground="#ffffff" />
-                                            <TextBlock Text="Реалистичные тени, освещение и выбор шейдерпака" FontSize="11" Foreground="#888888" />
+                                            <TextBlock
+                                                FontSize="13"
+                                                FontWeight="SemiBold"
+                                                Foreground="#ffffff"
+                                                Text="Графика и Шейдеры (Iris + Sodium)" />
+                                            <TextBlock
+                                                FontSize="11"
+                                                Foreground="#888888"
+                                                Text="Реалистичные тени, освещение и выбор шейдерпака" />
                                         </StackPanel>
-                                        <ToggleSwitch Grid.Column="1" 
-                                                      IsChecked="{Binding ShadersEnabled}" 
-                                                      OnContent="Включены" 
-                                                      OffContent="Выключены" 
-                                                      VerticalAlignment="Center" />
+                                        <ToggleSwitch
+                                            Grid.Column="1"
+                                            VerticalAlignment="Center"
+                                            IsChecked="{Binding ShadersEnabled}"
+                                            OffContent="Выключены"
+                                            OnContent="Включены" />
                                     </Grid>
 
-                                    <Grid ColumnDefinitions="*, Auto" Margin="0,4,0,0">
-                                        <StackPanel Grid.Column="0" Spacing="4" Margin="0,0,10,0">
-                                            <TextBlock Text="Активный шейдерпак" FontSize="11" Foreground="#888888" />
-                                            <ComboBox ItemsSource="{Binding AvailableShaderPacks}" 
-                                                      SelectedItem="{Binding SelectedShaderPack}" 
-                                                      HorizontalAlignment="Stretch" />
+                                    <Grid Margin="0,4,0,0" ColumnDefinitions="*, Auto">
+                                        <StackPanel
+                                            Grid.Column="0"
+                                            Margin="0,0,10,0"
+                                            Spacing="4">
+                                            <TextBlock
+                                                FontSize="11"
+                                                Foreground="#888888"
+                                                Text="Активный шейдерпак" />
+                                            <ComboBox
+                                                HorizontalAlignment="Stretch"
+                                                ItemsSource="{Binding AvailableShaderPacks}"
+                                                SelectedItem="{Binding SelectedShaderPack}" />
                                         </StackPanel>
-                                        <Button Grid.Column="1" 
-                                                Classes="SecondaryBtn" 
-                                                Margin="0,18,0,0" 
-                                                Command="{Binding OpenShaderpacksFolderCommand}"
-                                                VerticalAlignment="Center">
+                                        <Button
+                                            Grid.Column="1"
+                                            Margin="0,18,0,0"
+                                            VerticalAlignment="Center"
+                                            Classes="SecondaryBtn"
+                                            Command="{Binding OpenShaderpacksFolderCommand}">
                                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                                <ic:SymbolIcon Symbol="FolderOpen" FontSize="13" Foreground="#38bdf8" />
-                                                <TextBlock Text="Папка shaderpacks" FontSize="11" VerticalAlignment="Center" />
+                                                <ic:SymbolIcon
+                                                    FontSize="13"
+                                                    Foreground="#38bdf8"
+                                                    Symbol="FolderOpen" />
+                                                <TextBlock
+                                                    VerticalAlignment="Center"
+                                                    FontSize="11"
+                                                    Text="Папка shaderpacks" />
                                             </StackPanel>
                                         </Button>
                                     </Grid>
-                                    <TextBlock Text="Настройки автоматически синхронизируются с файлом iris.properties в обе стороны (в игре клавиша K)." FontSize="11" Foreground="#777777" TextWrapping="Wrap" />
+                                    <TextBlock
+                                        FontSize="11"
+                                        Foreground="#777777"
+                                        Text="Настройки автоматически синхронизируются с файлом iris.properties в обе стороны (в игре клавиша K)."
+                                        TextWrapping="Wrap" />
                                 </StackPanel>
                             </Border>
 
-                            <Border Classes="Card" Padding="18">
+                            <Border Padding="18" Classes="Card">
                                 <StackPanel Spacing="10">
-                                    <TextBlock Text="Поведение при запуске Minecraft" FontWeight="SemiBold" FontSize="13" Foreground="#ffffff" />
-                                    <CheckBox Content="Закрывать лаунчер при успешном старте игры" 
-                                              IsChecked="{Binding CloseOnLaunch}" 
-                                              Foreground="#cccccc" 
-                                              FontSize="12" />
-                                    <TextBlock Text="Освобождает оперативную память и фоновые ресурсы системы для максимальной плавности игры." FontSize="11" Foreground="#777777" />
+                                    <TextBlock
+                                        FontSize="13"
+                                        FontWeight="SemiBold"
+                                        Foreground="#ffffff"
+                                        Text="Поведение при запуске Minecraft" />
+                                    <CheckBox
+                                        Content="Закрывать лаунчер при успешном старте игры"
+                                        FontSize="12"
+                                        Foreground="#cccccc"
+                                        IsChecked="{Binding CloseOnLaunch}" />
+                                    <TextBlock
+                                        FontSize="11"
+                                        Foreground="#777777"
+                                        Text="Освобождает оперативную память и фоновые ресурсы системы для максимальной плавности игры." />
                                 </StackPanel>
                             </Border>
 
-                            <Border Classes="Card" Padding="18">
+                            <Border Padding="18" Classes="Card">
                                 <StackPanel Spacing="12">
                                     <Grid ColumnDefinitions="*, Auto">
                                         <StackPanel Grid.Column="0" Spacing="4">
-                                            <TextBlock Text="Обновления лаунчера (GitHub)" FontWeight="SemiBold" FontSize="13" Foreground="#ffffff" />
+                                            <TextBlock
+                                                FontSize="13"
+                                                FontWeight="SemiBold"
+                                                Foreground="#ffffff"
+                                                Text="Обновления лаунчера (GitHub)" />
                                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <TextBlock Text="Текущая версия:" FontSize="11" Foreground="#888888" VerticalAlignment="Center" />
-                                                <Border Background="#242424" CornerRadius="4" Padding="6,2" BorderBrush="#383838" BorderThickness="1">
-                                                    <TextBlock Text="{x:Static vm:MainViewModel.CurrentVersionText}" FontSize="11" FontWeight="SemiBold" Foreground="#60cdff" />
+                                                <TextBlock
+                                                    VerticalAlignment="Center"
+                                                    FontSize="11"
+                                                    Foreground="#888888"
+                                                    Text="Текущая версия:" />
+                                                <Border
+                                                    Padding="6,2"
+                                                    Background="#242424"
+                                                    BorderBrush="#383838"
+                                                    BorderThickness="1"
+                                                    CornerRadius="4">
+                                                    <TextBlock
+                                                        FontSize="11"
+                                                        FontWeight="SemiBold"
+                                                        Foreground="#60cdff"
+                                                        Text="{x:Static vm:MainViewModel.CurrentVersionText}" />
                                                 </Border>
-                                                <TextBlock Text="{Binding UpdateStatusText}" FontSize="11" Foreground="#aaaaaa" VerticalAlignment="Center" Margin="6,0,0,0" />
+                                                <TextBlock
+                                                    Margin="6,0,0,0"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="11"
+                                                    Foreground="#aaaaaa"
+                                                    Text="{Binding UpdateStatusText}" />
                                             </StackPanel>
                                         </StackPanel>
-                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                            <Button Classes="SecondaryBtn" 
-                                                    Padding="12,6" 
-                                                    Command="{Binding CheckForUpdatesCommand}"
-                                                    IsEnabled="{Binding !IsUpdating}">
+                                        <StackPanel
+                                            Grid.Column="1"
+                                            VerticalAlignment="Center"
+                                            Orientation="Horizontal"
+                                            Spacing="8">
+                                            <Button
+                                                Padding="12,6"
+                                                Classes="SecondaryBtn"
+                                                Command="{Binding CheckForUpdatesCommand}"
+                                                IsEnabled="{Binding !IsUpdating}">
                                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                                    <ic:SymbolIcon Symbol="ArrowSync" FontSize="13" Foreground="#60cdff" />
-                                                    <TextBlock Text="Проверить" FontSize="12" VerticalAlignment="Center" />
+                                                    <ic:SymbolIcon
+                                                        FontSize="13"
+                                                        Foreground="#60cdff"
+                                                        Symbol="ArrowSync" />
+                                                    <TextBlock
+                                                        VerticalAlignment="Center"
+                                                        FontSize="12"
+                                                        Text="Проверить" />
                                                 </StackPanel>
                                             </Button>
-                                            <Button Classes="PlayBtn" 
-                                                    Padding="12,6" 
-                                                    Command="{Binding ApplyUpdateCommand}"
-                                                    IsVisible="{Binding IsUpdateAvailable}"
-                                                    IsEnabled="{Binding !IsUpdating}">
+                                            <Button
+                                                Padding="12,6"
+                                                Classes="PlayBtn"
+                                                Command="{Binding ApplyUpdateCommand}"
+                                                IsEnabled="{Binding !IsUpdating}"
+                                                IsVisible="{Binding IsUpdateAvailable}">
                                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                                    <ic:SymbolIcon Symbol="ArrowDownload" FontSize="13" />
-                                                    <TextBlock Text="Обновить" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                    <ic:SymbolIcon FontSize="13" Symbol="ArrowDownload" />
+                                                    <TextBlock
+                                                        VerticalAlignment="Center"
+                                                        FontSize="12"
+                                                        FontWeight="SemiBold"
+                                                        Text="Обновить" />
                                                 </StackPanel>
                                             </Button>
                                         </StackPanel>
                                     </Grid>
                                     <StackPanel IsVisible="{Binding IsUpdating}" Spacing="4">
                                         <Grid ColumnDefinitions="*, Auto">
-                                            <TextBlock Grid.Column="0" Text="{Binding UpdateStatusText}" FontSize="11" Foreground="#38bdf8" />
-                                            <TextBlock Grid.Column="1" Text="{Binding UpdateProgress, StringFormat='{}{0:F0}%'}" FontSize="11" Foreground="#38bdf8" FontWeight="Bold" />
+                                            <TextBlock
+                                                Grid.Column="0"
+                                                FontSize="11"
+                                                Foreground="#38bdf8"
+                                                Text="{Binding UpdateStatusText}" />
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                FontSize="11"
+                                                FontWeight="Bold"
+                                                Foreground="#38bdf8"
+                                                Text="{Binding UpdateProgress, StringFormat='{}{0:F0}%'}" />
                                         </Grid>
-                                        <ProgressBar Value="{Binding UpdateProgress}" Maximum="100" Height="4" CornerRadius="2" Foreground="#38bdf8" Background="#243444" />
+                                        <ProgressBar
+                                            Height="4"
+                                            Background="#243444"
+                                            CornerRadius="2"
+                                            Foreground="#38bdf8"
+                                            Maximum="100"
+                                            Value="{Binding UpdateProgress}" />
                                     </StackPanel>
-                                    <TextBlock Text="Лаунчер автоматически проверяет наличие новых версий на GitHub Releases при запуске и обновляет бинарный файл без внешних установщиков." FontSize="11" Foreground="#777777" TextWrapping="Wrap" />
+                                    <TextBlock
+                                        FontSize="11"
+                                        Foreground="#777777"
+                                        Text="Лаунчер автоматически проверяет наличие новых версий на GitHub Releases при запуске и обновляет бинарный файл без внешних установщиков."
+                                        TextWrapping="Wrap" />
                                 </StackPanel>
                             </Border>
                         </StackPanel>
                     </ScrollViewer>
 
                     <Grid RowDefinitions="Auto, *">
-                        <Grid Grid.Row="0" ColumnDefinitions="*, Auto" Margin="0,0,0,16">
+                        <Grid
+                            Grid.Row="0"
+                            Margin="0,0,0,16"
+                            ColumnDefinitions="*, Auto">
                             <StackPanel Grid.Column="0" Spacing="4">
-                                <TextBlock Text="Консоль и логи запуска" FontSize="20" FontWeight="Bold" Foreground="#ffffff" />
-                                <TextBlock Text="Вывод процессов Fabric, инициализации модов и соединения с homelab" FontSize="12" Foreground="#888888" />
+                                <TextBlock
+                                    FontSize="20"
+                                    FontWeight="Bold"
+                                    Foreground="#ffffff"
+                                    Text="Консоль и логи запуска" />
+                                <TextBlock
+                                    FontSize="12"
+                                    Foreground="#888888"
+                                    Text="Вывод процессов Fabric, инициализации модов и соединения с homelab" />
                             </StackPanel>
-                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                            <StackPanel
+                                Grid.Column="1"
+                                Orientation="Horizontal"
+                                Spacing="8">
                                 <Button Classes="SecondaryBtn" Command="{Binding ClearLogsCommand}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <ic:SymbolIcon Symbol="Delete" FontSize="14" Foreground="#f87171" />
-                                        <TextBlock Text="Очистить" FontSize="12" VerticalAlignment="Center" />
+                                        <ic:SymbolIcon
+                                            FontSize="14"
+                                            Foreground="#f87171"
+                                            Symbol="Delete" />
+                                        <TextBlock
+                                            VerticalAlignment="Center"
+                                            FontSize="12"
+                                            Text="Очистить" />
                                     </StackPanel>
                                 </Button>
                                 <Button Classes="SecondaryBtn" Command="{Binding OpenClientLogFileCommand}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <ic:SymbolIcon Symbol="DocumentText" FontSize="14" Foreground="#60cdff" />
-                                        <TextBlock Text="Файл логов" FontSize="12" VerticalAlignment="Center" />
+                                        <ic:SymbolIcon
+                                            FontSize="14"
+                                            Foreground="#60cdff"
+                                            Symbol="DocumentText" />
+                                        <TextBlock
+                                            VerticalAlignment="Center"
+                                            FontSize="12"
+                                            Text="Файл логов" />
                                     </StackPanel>
                                 </Button>
                                 <Button Classes="SecondaryBtn" Command="{Binding OpenLogsFolderCommand}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <ic:SymbolIcon Symbol="FolderOpen" FontSize="14" Foreground="#38bdf8" />
-                                        <TextBlock Text="Папка logs" FontSize="12" VerticalAlignment="Center" />
+                                        <ic:SymbolIcon
+                                            FontSize="14"
+                                            Foreground="#38bdf8"
+                                            Symbol="FolderOpen" />
+                                        <TextBlock
+                                            VerticalAlignment="Center"
+                                            FontSize="12"
+                                            Text="Папка logs" />
                                     </StackPanel>
                                 </Button>
                             </StackPanel>
                         </Grid>
 
-                        <Border Grid.Row="1" Classes="Card" Background="#141414" BorderBrush="#272727" Padding="14">
-                            <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Auto">
+                        <Border
+                            Grid.Row="1"
+                            Padding="14"
+                            Background="#141414"
+                            BorderBrush="#272727"
+                            Classes="Card">
+                            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Hidden">
                                 <ItemsControl ItemsSource="{Binding ConsoleLogs}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="x:String">
-                                            <SelectableTextBlock Text="{Binding}" 
-                                                                 FontFamily="Cascadia Code, Consolas, Courier New, monospace" 
-                                                                 FontSize="11.5" 
-                                                                 Foreground="#9cdcfe" 
-                                                                 LineHeight="18" 
-                                                                 TextWrapping="Wrap" />
+                                            <SelectableTextBlock
+                                                FontFamily="Cascadia Code, Consolas, Courier New, monospace"
+                                                FontSize="11.5"
+                                                Foreground="#9cdcfe"
+                                                LineHeight="18"
+                                                Text="{Binding}"
+                                                TextWrapping="Wrap" />
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
@@ -882,30 +1653,61 @@
             </Border>
         </Grid>
 
-        <Border Grid.Row="2" 
-                Background="#181818" 
-                BorderBrush="#292929" 
-                BorderThickness="0,1,0,0" 
-                Padding="16,0">
-            <Grid ColumnDefinitions="Auto, *, Auto" VerticalAlignment="Center">
-                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                    <TextBlock Text="Homelab:" FontSize="11" Foreground="#777777" />
-                    <TextBlock Text="{Binding Settings.ServerHost}" FontSize="11" FontWeight="SemiBold" Foreground="#60cdff" />
-                    <TextBlock Text="•" FontSize="11" Foreground="#555555" />
-                    <TextBlock Text="{Binding ServerStatus.LatencyMs, StringFormat='{}{0} ms'}" FontSize="11" Foreground="#4ade80" />
+        <Border
+            Grid.Row="2"
+            Padding="16,0"
+            Background="#181818"
+            BorderBrush="#292929"
+            BorderThickness="0,1,0,0">
+            <Grid VerticalAlignment="Center" ColumnDefinitions="Auto, *, Auto">
+                <StackPanel
+                    Grid.Column="0"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal"
+                    Spacing="10">
+                    <TextBlock
+                        FontSize="11"
+                        Foreground="#777777"
+                        Text="Homelab:" />
+                    <TextBlock
+                        FontSize="11"
+                        FontWeight="SemiBold"
+                        Foreground="#60cdff"
+                        Text="{Binding Settings.ServerHost}" />
+                    <TextBlock
+                        FontSize="11"
+                        Foreground="#555555"
+                        Text="•" />
+                    <TextBlock
+                        FontSize="11"
+                        Foreground="#4ade80"
+                        Text="{Binding ServerStatus.LatencyMs, StringFormat='{}{0} ms'}" />
                 </StackPanel>
 
-                <TextBlock Grid.Column="1" 
-                           Text="{Binding StatusMessage}" 
-                           FontSize="11" 
-                           Foreground="#888888" 
-                           HorizontalAlignment="Center" 
-                           TextTrimming="CharacterEllipsis" 
-                           VerticalAlignment="Center" />
+                <TextBlock
+                    Grid.Column="1"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    FontSize="11"
+                    Foreground="#888888"
+                    Text="{Binding StatusMessage}"
+                    TextTrimming="CharacterEllipsis" />
 
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                    <ic:SymbolIcon Symbol="HardDrive" FontSize="13" Foreground="#38bdf8" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding CurrentDriveSummary}" FontSize="11" Foreground="#aaaaaa" VerticalAlignment="Center" />
+                <StackPanel
+                    Grid.Column="2"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal"
+                    Spacing="8">
+                    <ic:SymbolIcon
+                        VerticalAlignment="Center"
+                        FontSize="13"
+                        Foreground="#38bdf8"
+                        Symbol="HardDrive" />
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        FontSize="11"
+                        Foreground="#aaaaaa"
+                        Text="{Binding CurrentDriveSummary}" />
                 </StackPanel>
             </Grid>
         </Border>
