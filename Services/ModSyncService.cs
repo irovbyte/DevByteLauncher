@@ -128,6 +128,22 @@ public static class ModSyncService
             });
         }
 
+        var allowedFiles = manifest.Files.Select(f => Path.GetFileName(f.Path)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var localFile in Directory.EnumerateFiles(modsDir, "*.jar"))
+        {
+            var fileName = Path.GetFileName(localFile);
+            if (!allowedFiles.Contains(fileName))
+            {
+                try
+                {
+                    File.Delete(localFile);
+                }
+                catch
+                {
+                }
+            }
+        }
+
         progress?.Report(("Все моды успешно синхронизированы!", 100));
         return true;
     }
