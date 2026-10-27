@@ -13,6 +13,6 @@ public class AppSettings
     public int SyncPort { get; set; } = 25566;
     public string? SelectedSkinPath { get; set; }
     public bool ShadersEnabled { get; set; }
-    public string SelectedShaderPack { get; set; } = "ComplementaryReimagined_r5.9.3.zip";
+    public string SelectedShaderPack { get; set; } = "photon_v1.4.zip";
     public bool CloseOnLaunch { get; set; } = true;
 }

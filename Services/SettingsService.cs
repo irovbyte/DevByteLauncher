@@ -29,7 +29,7 @@ public static class SettingsService
                     }
                     if (string.IsNullOrWhiteSpace(settings.SelectedShaderPack))
                     {
-                        settings.SelectedShaderPack = "ComplementaryReimagined_r5.9.3.zip";
+                        settings.SelectedShaderPack = "photon_v1.4.zip";
                     }
                     return settings;
                 }

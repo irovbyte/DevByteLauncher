@@ -89,7 +89,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public partial bool ShadersEnabled { get; set; }
 
     [ObservableProperty]
-    public partial string SelectedShaderPack { get; set; } = "ComplementaryReimagined_r5.9.3.zip";
+    public partial string SelectedShaderPack { get; set; } = "photon_v1.4.zip";
 
     [ObservableProperty]
     public partial bool CloseOnLaunch { get; set; } = true;

@@ -7,11 +7,11 @@ public static class ShaderService
         Timeout = TimeSpan.FromSeconds(30)
     };
 
-    public const string DefaultShader = "ComplementaryReimagined_r5.9.3.zip";
-    public const string AlternativeShader = "BSL_v10.1.8.zip";
+    public const string DefaultShader = "photon_v1.4.zip";
+    public const string BslShader = "BSL_v10.1.8.zip";
+    public const string ComplementaryShader = "ComplementaryReimagined_r5.9.3.zip";
 
-    private const string IrisDownloadUrl = "https://cdn.modrinth.com/data/YL57xq9U/versions/bAo1Qhte/iris-fabric-1.8.14-beta.1%2Bmc1.21.1.jar";
-    private const string SodiumDownloadUrl = "https://cdn.modrinth.com/data/AANobbMI/versions/s7adptIg/sodium-fabric-0.8.12-beta.1%2Bmc1.21.1.jar";
+    private const string PhotonDownloadUrl = "https://cdn.modrinth.com/data/lLqFfGNs/versions/BnGklH5y/photon_v1.4.zip";
     private const string ComplementaryDownloadUrl = "https://cdn.modrinth.com/data/HVnmMxH1/versions/Bqen1mJX/ComplementaryReimagined_r5.9.3.zip";
     private const string BslDownloadUrl = "https://cdn.modrinth.com/data/Q1vvjJYV/versions/Y68yiql9/BSL_v10.1.8.zip";
 
@@ -132,9 +132,14 @@ public static class ShaderService
             result.Insert(0, DefaultShader);
         }
 
-        if (!result.Contains(AlternativeShader, StringComparer.OrdinalIgnoreCase))
+        if (!result.Contains(BslShader, StringComparer.OrdinalIgnoreCase))
         {
-            result.Add(AlternativeShader);
+            result.Add(BslShader);
+        }
+
+        if (!result.Contains(ComplementaryShader, StringComparer.OrdinalIgnoreCase))
+        {
+            result.Add(ComplementaryShader);
         }
 
         return result;
@@ -145,38 +150,28 @@ public static class ShaderService
         IProgress<(string message, double percentage)>? progress = null,
         CancellationToken cancellationToken = default)
     {
-        var modsDir = Path.Combine(installationPath, "mods");
-        _ = Directory.CreateDirectory(modsDir);
-
         var shaderpacksDir = Path.Combine(installationPath, "shaderpacks");
         _ = Directory.CreateDirectory(shaderpacksDir);
 
-        var irisPath = Path.Combine(modsDir, "iris.jar");
-        if (!File.Exists(irisPath))
+        var photonShaderPath = Path.Combine(shaderpacksDir, DefaultShader);
+        if (!File.Exists(photonShaderPath))
         {
-            progress?.Report(("Загрузка шейдер-движка Iris...", 40));
-            await DownloadFileAsync(IrisDownloadUrl, irisPath, cancellationToken);
+            progress?.Report(("Загрузка шейдеров Photon...", 60));
+            await DownloadFileAsync(PhotonDownloadUrl, photonShaderPath, cancellationToken);
         }
 
-        var sodiumPath = Path.Combine(modsDir, "sodium.jar");
-        if (!File.Exists(sodiumPath))
-        {
-            progress?.Report(("Загрузка модуля оптимизации Sodium...", 50));
-            await DownloadFileAsync(SodiumDownloadUrl, sodiumPath, cancellationToken);
-        }
-
-        var compShaderPath = Path.Combine(shaderpacksDir, DefaultShader);
-        if (!File.Exists(compShaderPath))
-        {
-            progress?.Report(("Загрузка шейдеров Complementary Reimagined...", 60));
-            await DownloadFileAsync(ComplementaryDownloadUrl, compShaderPath, cancellationToken);
-        }
-
-        var bslShaderPath = Path.Combine(shaderpacksDir, AlternativeShader);
+        var bslShaderPath = Path.Combine(shaderpacksDir, BslShader);
         if (!File.Exists(bslShaderPath))
         {
             progress?.Report(("Загрузка шейдеров BSL...", 70));
             await DownloadFileAsync(BslDownloadUrl, bslShaderPath, cancellationToken);
+        }
+
+        var compShaderPath = Path.Combine(shaderpacksDir, ComplementaryShader);
+        if (!File.Exists(compShaderPath))
+        {
+            progress?.Report(("Загрузка шейдеров Complementary Reimagined...", 80));
+            await DownloadFileAsync(ComplementaryDownloadUrl, compShaderPath, cancellationToken);
         }
     }
 
