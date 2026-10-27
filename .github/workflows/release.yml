@@ -2,6 +2,9 @@ name: Release
 
 on:
   push:
+    branches:
+      - master
+      - main
     tags:
       - 'v*'
   workflow_dispatch:
@@ -9,7 +12,6 @@ on:
       tag_name:
         description: 'Release Tag'
         required: false
-        default: 'v1.2.1'
 
 permissions:
   contents: write
@@ -20,6 +22,21 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Determine Version Tag
+        id: version_step
+        shell: pwsh
+        run: |
+          if ('${{ github.ref_type }}' -eq 'tag') {
+            $tag = '${{ github.ref_name }}'
+          } elseif ('${{ inputs.tag_name }}' -ne '') {
+            $tag = '${{ inputs.tag_name }}'
+          } else {
+            [xml]$xml = Get-Content version.props
+            $ver = $xml.Project.PropertyGroup.Version
+            $tag = "v$ver"
+          }
+          Write-Output "tag=$tag" >> $env:GITHUB_OUTPUT
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -41,7 +58,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag_name || 'v1.2.1' }}
+          tag_name: ${{ steps.version_step.outputs.tag }}
           files: |
             release-win/DevByteLauncher.exe
             release-linux/DevByteLauncher-linux-x64
