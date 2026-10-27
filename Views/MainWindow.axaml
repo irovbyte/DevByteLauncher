@@ -26,6 +26,12 @@
     mc:Ignorable="d">
 
     <Window.Styles>
+        <Style Selector="WindowDrawnDecorations /template/ TextBlock">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="WindowDrawnDecorations /template/ Image">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
         <Style Selector="Button.NavBtn">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
@@ -1881,3 +1887,6 @@
         </Border>
     </Grid>
 </Window>
+
+
+
