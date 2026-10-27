@@ -2,9 +2,15 @@ namespace DevByteLauncher.Services;
 
 public static class ModSyncService
 {
-    private static readonly HttpClient t_httpClient = new()
+    private static readonly SocketsHttpHandler t_handler = new()
     {
-        Timeout = TimeSpan.FromSeconds(15)
+        PooledConnectionLifetime = TimeSpan.FromMinutes(2),
+        MaxConnectionsPerServer = 32
+    };
+
+    private static readonly HttpClient t_httpClient = new(t_handler)
+    {
+        Timeout = TimeSpan.FromSeconds(30)
     };
 
     public static async Task<ModManifest> FetchManifestAsync(string host, int port, CancellationToken cancellationToken = default)
@@ -55,6 +61,7 @@ public static class ModSyncService
             return true;
         }
 
+        var toDownload = new List<(ModManifestItem item, string targetPath)>();
         var processed = 0;
 
         foreach (var item in manifest.Files)
@@ -85,19 +92,40 @@ public static class ModSyncService
                 }
             }
 
-            var progressPercent = (double)processed / totalFiles * 100.0;
-
             if (needsDownload)
             {
-                progress?.Report(($"Загрузка: {item.Name} ({processed + 1}/{totalFiles})...", progressPercent));
-                await DownloadFileAsync(item.Url, targetPath, cancellationToken);
+                toDownload.Add((item, targetPath));
             }
             else
             {
-                progress?.Report(($"Проверен: {item.Name} ({processed + 1}/{totalFiles})", progressPercent));
+                _ = Interlocked.Increment(ref processed);
             }
+        }
 
-            processed++;
+        if (toDownload.Count > 0)
+        {
+            var parallelOptions = new ParallelOptions
+            {
+                MaxDegreeOfParallelism = 12,
+                CancellationToken = cancellationToken
+            };
+
+            await Parallel.ForEachAsync(toDownload, parallelOptions, async (entry, ct) =>
+            {
+                try
+                {
+                    await DownloadFileAsync(entry.item.Url, entry.targetPath, ct);
+                }
+                catch
+                {
+                }
+                finally
+                {
+                    var current = Interlocked.Increment(ref processed);
+                    var progressPercent = (double)current / totalFiles * 100.0;
+                    progress?.Report(($"Загрузка: {entry.item.Name} ({current}/{totalFiles})...", progressPercent));
+                }
+            });
         }
 
         progress?.Report(("Все моды успешно синхронизированы!", 100));

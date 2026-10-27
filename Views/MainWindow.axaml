@@ -7,7 +7,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="using:DevByteLauncher.Models"
     xmlns:vm="using:DevByteLauncher.ViewModels"
-    Title=""
+    Title="DevByte Launcher"
     Width="1050"
     Height="680"
     MinWidth="900"
