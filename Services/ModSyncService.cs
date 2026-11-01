@@ -2,28 +2,33 @@ namespace DevByteLauncher.Services;
 
 public static class ModSyncService
 {
-    private static readonly SocketsHttpHandler t_handler = new()
+    private static readonly SocketsHttpHandler s_handler = new()
     {
         PooledConnectionLifetime = TimeSpan.FromMinutes(2),
         MaxConnectionsPerServer = 32
     };
 
-    private static readonly HttpClient t_httpClient = new(t_handler)
+    private static readonly HttpClient s_httpClient = new(s_handler)
     {
         Timeout = TimeSpan.FromSeconds(30)
     };
 
     public static async Task<ModManifest> FetchManifestAsync(string host, int port, CancellationToken cancellationToken = default)
     {
+        if (port <= 0)
+        {
+            return new ModManifest { Files = [] };
+        }
+
         var url = $"http://{host}:{port}/manifest.json";
         try
         {
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            cts.CancelAfter(TimeSpan.FromSeconds(5));
+            cts.CancelAfter(TimeSpan.FromSeconds(2));
 
-            var response = await t_httpClient.GetStringAsync(url, cts.Token);
+            var response = await s_httpClient.GetStringAsync(url, cts.Token);
             var manifest = JsonSerializer.Deserialize<ModManifest>(response);
-            if (manifest != null && manifest.Files.Count > 0)
+            if (manifest != null && (manifest.Files.Count > 0 || manifest.ResourcePacks.Count > 0 || manifest.ShaderPacks.Count > 0))
             {
                 return manifest;
             }
@@ -32,7 +37,7 @@ public static class ModSyncService
         {
         }
 
-        return CreateFallbackManifest(host);
+        return new ModManifest { Files = [] };
     }
 
     public static async Task<bool> SyncModsAsync(
@@ -51,6 +56,25 @@ public static class ModSyncService
             if (File.Exists(badModPath))
             {
                 File.Delete(badModPath);
+            }
+        }
+
+        var allowedNames = manifest.Files
+            .Select(f => Path.GetFileName(f.Path))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var existingFile in Directory.EnumerateFiles(modsDir, "*.jar"))
+        {
+            var fileName = Path.GetFileName(existingFile);
+            if (!allowedNames.Contains(fileName))
+            {
+                try
+                {
+                    File.Delete(existingFile);
+                }
+                catch
+                {
+                }
             }
         }
 
@@ -128,32 +152,236 @@ public static class ModSyncService
             });
         }
 
-        var allowedFiles = manifest.Files.Select(f => Path.GetFileName(f.Path)).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        foreach (var localFile in Directory.EnumerateFiles(modsDir, "*.jar"))
-        {
-            var fileName = Path.GetFileName(localFile);
-            if (!allowedFiles.Contains(fileName))
-            {
-                try
-                {
-                    File.Delete(localFile);
-                }
-                catch
-                {
-                }
-            }
-        }
-
         progress?.Report(("Все моды успешно синхронизированы!", 100));
         return true;
     }
 
-    private static async Task DownloadFileAsync(string url, string destinationPath, CancellationToken cancellationToken)
+    public static async Task<bool> SyncResourcePacksAsync(
+        string installationPath,
+        ModManifest manifest,
+        IProgress<(string message, double percentage)>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        var resourcepacksDir = Path.Combine(installationPath, "resourcepacks");
+        _ = Directory.CreateDirectory(resourcepacksDir);
+
+        var packsToSync = manifest.ResourcePacks.Count > 0
+            ? manifest.ResourcePacks
+            : ResourcePackService.GetRecommendedPacks();
+
+        var total = packsToSync.Count;
+        if (total == 0)
+        {
+            progress?.Report(("Ресурспаки синхронизированы", 100));
+            return true;
+        }
+
+        var toDownload = new List<(ModManifestItem item, string targetPath)>();
+        var processed = 0;
+
+        foreach (var item in packsToSync)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var fileName = !string.IsNullOrWhiteSpace(item.Name)
+                ? item.Name
+                : Path.GetFileName(item.Path);
+
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                continue;
+            }
+
+            var targetPath = Path.Combine(resourcepacksDir, fileName);
+            var needsDownload = false;
+
+            if (!File.Exists(targetPath))
+            {
+                needsDownload = true;
+            }
+            else
+            {
+                var fileInfo = new FileInfo(targetPath);
+                if (item.Size > 0 && fileInfo.Length != item.Size)
+                {
+                    needsDownload = true;
+                }
+                else if (!string.IsNullOrEmpty(item.Sha1))
+                {
+                    var localSha1 = CalculateSha1(targetPath);
+                    if (!string.Equals(localSha1, item.Sha1, StringComparison.OrdinalIgnoreCase))
+                    {
+                        needsDownload = true;
+                    }
+                }
+            }
+
+            if (needsDownload)
+            {
+                toDownload.Add((item, targetPath));
+            }
+            else
+            {
+                _ = Interlocked.Increment(ref processed);
+            }
+        }
+
+        if (toDownload.Count > 0)
+        {
+            var parallelOptions = new ParallelOptions
+            {
+                MaxDegreeOfParallelism = 4,
+                CancellationToken = cancellationToken
+            };
+
+            await Parallel.ForEachAsync(toDownload, parallelOptions, async (entry, ct) =>
+            {
+                try
+                {
+                    await DownloadFileAsync(entry.item.Url, entry.targetPath, ct);
+                }
+                catch
+                {
+                }
+                finally
+                {
+                    var current = Interlocked.Increment(ref processed);
+                    var pct = (double)current / total * 100.0;
+                    progress?.Report(($"Загрузка ресурспака: {entry.item.Name} ({current}/{total})...", pct));
+                }
+            });
+        }
+
+        var activePacks = ResourcePackService.GetActiveResourcePacks(installationPath);
+        if (activePacks.Count == 0 || (activePacks.Count == 1 && activePacks[0] == "vanilla"))
+        {
+            ResourcePackService.EnsureResourcePackEnabled(installationPath, ResourcePackService.DefaultFreshAnimationsPack);
+        }
+
+        progress?.Report(("Все ресурспаки синхронизированы!", 100));
+        return true;
+    }
+
+    public static async Task<bool> SyncShaderPacksAsync(
+        string installationPath,
+        ModManifest manifest,
+        IProgress<(string message, double percentage)>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        var shaderpacksDir = Path.Combine(installationPath, "shaderpacks");
+        _ = Directory.CreateDirectory(shaderpacksDir);
+
+        if (manifest.ShaderPacks.Count == 0)
+        {
+            await ShaderService.EnsureShadersAndModsAsync(installationPath, progress, cancellationToken);
+            progress?.Report(("Шейдерпаки синхронизированы", 100));
+            return true;
+        }
+
+        var total = manifest.ShaderPacks.Count;
+        var toDownload = new List<(ModManifestItem item, string targetPath)>();
+        var processed = 0;
+
+        foreach (var item in manifest.ShaderPacks)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var fileName = !string.IsNullOrWhiteSpace(item.Name)
+                ? item.Name
+                : Path.GetFileName(item.Path);
+
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                continue;
+            }
+
+            var targetPath = Path.Combine(shaderpacksDir, fileName);
+            var needsDownload = false;
+
+            if (!File.Exists(targetPath))
+            {
+                needsDownload = true;
+            }
+            else
+            {
+                var fileInfo = new FileInfo(targetPath);
+                if (item.Size > 0 && fileInfo.Length != item.Size)
+                {
+                    needsDownload = true;
+                }
+                else if (!string.IsNullOrEmpty(item.Sha1))
+                {
+                    var localSha1 = CalculateSha1(targetPath);
+                    if (!string.Equals(localSha1, item.Sha1, StringComparison.OrdinalIgnoreCase))
+                    {
+                        needsDownload = true;
+                    }
+                }
+            }
+
+            if (needsDownload)
+            {
+                toDownload.Add((item, targetPath));
+            }
+            else
+            {
+                _ = Interlocked.Increment(ref processed);
+            }
+        }
+
+        if (toDownload.Count > 0)
+        {
+            var parallelOptions = new ParallelOptions
+            {
+                MaxDegreeOfParallelism = 4,
+                CancellationToken = cancellationToken
+            };
+
+            await Parallel.ForEachAsync(toDownload, parallelOptions, async (entry, ct) =>
+            {
+                try
+                {
+                    await DownloadFileAsync(entry.item.Url, entry.targetPath, ct);
+                }
+                catch
+                {
+                }
+                finally
+                {
+                    var current = Interlocked.Increment(ref processed);
+                    var pct = (double)current / total * 100.0;
+                    progress?.Report(($"Загрузка шейдера: {entry.item.Name} ({current}/{total})...", pct));
+                }
+            });
+        }
+
+        progress?.Report(("Все шейдерпаки синхронизированы!", 100));
+        return true;
+    }
+
+    public static async Task<bool> SyncAllAsync(
+        string installationPath,
+        ModManifest manifest,
+        IProgress<(string message, double percentage)>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        progress?.Report(("Синхронизация модов сборки...", 10));
+        var modsOk = await SyncModsAsync(installationPath, manifest, progress, cancellationToken);
+
+        progress?.Report(("Синхронизация ресурспаков...", 50));
+        var rpOk = await SyncResourcePacksAsync(installationPath, manifest, progress, cancellationToken);
+
+        progress?.Report(("Синхронизация шейдерпаков...", 80));
+        var spOk = await SyncShaderPacksAsync(installationPath, manifest, progress, cancellationToken);
+
+        progress?.Report(("Синхронизация сборки успешно завершена!", 100));
+        return modsOk && rpOk && spOk;
+    }
+
+    public static async Task DownloadFileAsync(string url, string destinationPath, CancellationToken cancellationToken)
     {
         var tempFile = destinationPath + ".tmp";
         try
         {
-            using var response = await t_httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            using var response = await s_httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             _ = response.EnsureSuccessStatusCode();
 
             await using (var streamToReadFrom = await response.Content.ReadAsStreamAsync(cancellationToken))
@@ -185,7 +413,7 @@ public static class ModSyncService
     }
 
     [SuppressMessage("Security", "CA5350:Do Not Use Weak Cryptographic Algorithms", Justification = "SHA1 is required by Minecraft and Fabric manifest standard.")]
-    private static string CalculateSha1(string filePath)
+    public static string CalculateSha1(string filePath)
     {
         try
         {
@@ -198,49 +426,5 @@ public static class ModSyncService
         {
             return string.Empty;
         }
-    }
-
-    private static ModManifest CreateFallbackManifest(string host)
-    {
-        return new ModManifest
-        {
-            Version = "1.21.1",
-            FabricLoaderVersion = "0.16.9",
-            ServerHost = host,
-            ServerPort = 25565,
-            Files =
-            [
-                new ModManifestItem
-                {
-                    Name = "fabric-api.jar",
-                    Path = "mods/fabric-api.jar",
-                    Url = $"http://{host}:25566/download/fabric-api.jar"
-                },
-                new ModManifestItem
-                {
-                    Name = "lithium.jar",
-                    Path = "mods/lithium.jar",
-                    Url = $"http://{host}:25566/download/lithium.jar"
-                },
-                new ModManifestItem
-                {
-                    Name = "ferritecore.jar",
-                    Path = "mods/ferritecore.jar",
-                    Url = $"http://{host}:25566/download/ferritecore.jar"
-                },
-                new ModManifestItem
-                {
-                    Name = "krypton.jar",
-                    Path = "mods/krypton.jar",
-                    Url = $"http://{host}:25566/download/krypton.jar"
-                },
-                new ModManifestItem
-                {
-                    Name = "fabrictailor.jar",
-                    Path = "mods/fabrictailor.jar",
-                    Url = $"http://{host}:25566/download/fabrictailor.jar"
-                }
-            ]
-        };
     }
 }

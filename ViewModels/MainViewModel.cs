@@ -1,6 +1,6 @@
 namespace DevByteLauncher.ViewModels;
 
-public partial class MainViewModel : ViewModelBase, IDisposable
+public sealed partial class MainViewModel : ViewModelBase, IDisposable
 {
     private readonly CancellationTokenSource _cts = new();
     private Process? _gameProcess;
@@ -50,7 +50,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     public string PlayButtonToolTip => !IsNicknameValid
         ? "Введите никнейм перед запуском игры"
-        : (IsBusy ? "Выполняется запуск игры..." : (IsGameRunning ? "Minecraft запущен" : "Запустить Minecraft Fabric 1.21.1"));
+        : (IsBusy ? "Выполняется запуск игры..." : (IsGameRunning ? "Minecraft запущен" : $"Запустить Minecraft Fabric {Settings.MinecraftVersion}"));
 
     [ObservableProperty]
     public partial bool IsProgressVisible { get; set; }
@@ -103,12 +103,26 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     public partial string DeviceVerificationUrl { get; set; } = "https://www.microsoft.com/link";
 
+    [ObservableProperty]
+    public partial string ResourcePacksStatusText { get; set; } = "Готовы к игре (Fresh Animations, Stay True)";
+
+    [ObservableProperty]
+    public partial string ShadersStatusText { get; set; } = "Готовы к игре (Iris + Sodium)";
+
+    [ObservableProperty]
+    public partial bool IsResourcePacksSyncing { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsShadersSyncing { get; set; }
+
     public static string CurrentVersionText => $"v{UpdateService.CurrentVersion}";
 
     public ObservableCollection<DriveStorageInfo> Drives { get; } = [];
     public ObservableCollection<ModItemViewModel> Mods { get; } = [];
     public ObservableCollection<string> ConsoleLogs { get; } = [];
     public ObservableCollection<string> AvailableShaderPacks { get; } = [];
+    public ObservableCollection<string> AvailableResourcePacks { get; } = [];
+    public ObservableCollection<string> ActiveResourcePacks { get; } = [];
 
     public int AllocatedRamGb
     {
@@ -172,6 +186,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             OnPropertyChanged();
             UpdateDriveSummary();
             SaveSettings();
+            LoadShaderState();
+            LoadResourcePacksState();
             _ = LoadModsListAsync();
         }
     }
@@ -185,11 +201,13 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         UpdateDriveSummary();
         ReloadAvatar();
         LoadShaderState();
+        LoadResourcePacksState();
         AddLog($"[{DateTime.Now:HH:mm:ss}] [SYSTEM] DevByte Launcher v{UpdateService.CurrentVersion} инициализирован.");
         AddLog($"[{DateTime.Now:HH:mm:ss}] [SYSTEM] Директория установки: {Settings.InstallationPath}");
         AddLog($"[{DateTime.Now:HH:mm:ss}] [SYSTEM] Сервер: {Settings.ServerHost}:{Settings.ServerPort} (Порт синхронизации: {Settings.SyncPort})");
         AddLog($"[{DateTime.Now:HH:mm:ss}] [SYSTEM] Выделено памяти: {AllocatedRamGb} ГБ, Режим: {AuthModeBadgeText}");
         AddLog($"[{DateTime.Now:HH:mm:ss}] [GRAPHICS] Шейдеры: {(ShadersEnabled ? $"Включены ({SelectedShaderPack})" : "Выключены (Iris + Sodium готовы)")}");
+        AddLog($"[{DateTime.Now:HH:mm:ss}] [RESOURCES] Ресурспаки: {ResourcePacksStatusText}");
         _ = RefreshServerStatusAsync();
         _ = LoadModsListAsync();
         _ = StartPeriodicPingLoopAsync();
@@ -229,6 +247,85 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         ShaderService.SaveShaderState(Settings.InstallationPath, isEnabled, selectedPack);
     }
 
+    public void LoadResourcePacksState()
+    {
+        var available = ResourcePackService.GetAvailableResourcePacks(Settings.InstallationPath);
+        var active = ResourcePackService.GetActiveResourcePacks(Settings.InstallationPath);
+
+        AvailableResourcePacks.Clear();
+        foreach (var pack in available)
+        {
+            AvailableResourcePacks.Add(pack);
+        }
+
+        ActiveResourcePacks.Clear();
+        foreach (var pack in active)
+        {
+            ActiveResourcePacks.Add(pack);
+        }
+
+        var activeCount = active.Count(p => p is not "vanilla" and not "fabric");
+        ResourcePacksStatusText = activeCount > 0
+            ? $"Активно наборов: {activeCount} (Fresh Animations, Stay True)"
+            : "Рекомендованные (Fresh Animations, Stay True)";
+    }
+
+    [RelayCommand]
+    public void OpenResourcepacksFolder()
+    {
+        try
+        {
+            var rpDir = Path.Combine(Settings.InstallationPath, "resourcepacks");
+            _ = Directory.CreateDirectory(rpDir);
+            _ = Process.Start(new ProcessStartInfo
+            {
+                FileName = rpDir,
+                UseShellExecute = true
+            });
+        }
+        catch
+        {
+        }
+    }
+
+    [RelayCommand]
+    public async Task SyncResourcePacksAsync()
+    {
+        if (IsResourcePacksSyncing)
+        {
+            return;
+        }
+
+        try
+        {
+            IsResourcePacksSyncing = true;
+            ResourcePacksStatusText = "Синхронизация ресурспаков...";
+            AddLog($"[{DateTime.Now:HH:mm:ss}] [RESOURCES] Синхронизация наборов текстур (Fresh Animations, Stay True)...");
+            var manifest = await ModSyncService.FetchManifestAsync(Settings.ServerHost, Settings.SyncPort, _cts.Token);
+            if (!string.IsNullOrWhiteSpace(manifest.FabricLoaderVersion))
+            {
+                Settings.FabricVersion = manifest.FabricLoaderVersion;
+            }
+            if (!string.IsNullOrWhiteSpace(manifest.Version))
+            {
+                Settings.MinecraftVersion = manifest.Version;
+            }
+            SaveSettings();
+            _ = await ModSyncService.SyncResourcePacksAsync(Settings.InstallationPath, manifest, null, _cts.Token);
+            LoadResourcePacksState();
+            AddLog($"[{DateTime.Now:HH:mm:ss}] [RESOURCES] Синхронизация ресурспаков успешно завершена.");
+        }
+        catch (Exception ex)
+        {
+            ResourcePacksStatusText = "Ошибка синхронизации";
+            AddLog($"[{DateTime.Now:HH:mm:ss}] [ERROR] Ошибка синхронизации ресурспаков: {ex.Message}");
+        }
+        finally
+        {
+            IsResourcePacksSyncing = false;
+        }
+    }
+
     partial void OnShadersEnabledChanged(bool value)
     {
         Settings.ShadersEnabled = value;
@@ -259,31 +356,68 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     public async Task SyncCloudSkinAsync(string? explicitToken = null)
     {
-        if (!Settings.IsMicrosoftAuth)
+        if (Settings.IsMicrosoftAuth)
         {
-            return;
+            try
+            {
+                var token = explicitToken;
+                if (string.IsNullOrWhiteSpace(token))
+                {
+                    var session = await AuthService.AuthenticateAsync(Settings);
+                    token = session.AccessToken;
+                }
+
+                if (string.IsNullOrWhiteSpace(token) || token == "access_token")
+                {
+                    return;
+                }
+
+                var (skinUrl, _) = await AuthService.GetActiveSkinAsync(token);
+                if (!string.IsNullOrWhiteSpace(skinUrl))
+                {
+                    var skinsDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "DevByteLauncher", "skins");
+                    _ = Directory.CreateDirectory(skinsDir);
+                    var skinPath = Path.Combine(skinsDir, $"{Settings.Nickname}.png");
+                    var downloaded = await AuthService.DownloadSkinAsync(skinUrl, skinPath);
+                    if (downloaded)
+                    {
+                        Settings.SelectedSkinPath = skinPath;
+                        SaveSettings();
+
+                        if (!string.IsNullOrWhiteSpace(Settings.InstallationPath) && Directory.Exists(Settings.InstallationPath))
+                        {
+                            var ftSkin = Path.Combine(Settings.InstallationPath, "devbyte-skin.png");
+                            try
+                            {
+                                File.Copy(skinPath, ftSkin, true);
+                            }
+                            catch
+                            {
+                            }
+                        }
+
+                        Dispatcher.UIThread.Post(() =>
+                        {
+                            ReloadAvatar();
+                            OnPropertyChanged(nameof(Settings));
+                        });
+                        AddLog($"[{DateTime.Now:HH:mm:ss}] [SKIN] Актуальный скин игрока {Settings.Nickname} успешно обновлен из облака Microsoft.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                AddLog($"[{DateTime.Now:HH:mm:ss}] [ERROR] Ошибка синхронизации скина: {ex.Message}");
+            }
         }
-
-        try
+        else if (!string.IsNullOrWhiteSpace(Settings.Nickname) && Settings.Nickname != "Player")
         {
-            var token = explicitToken;
-            if (string.IsNullOrWhiteSpace(token))
-            {
-                var session = await AuthService.AuthenticateAsync(Settings);
-                token = session.AccessToken;
-            }
-
-            if (string.IsNullOrWhiteSpace(token) || token == "access_token")
-            {
-                return;
-            }
-
-            var (skinUrl, _) = await AuthService.GetActiveSkinAsync(token);
-            if (!string.IsNullOrWhiteSpace(skinUrl))
+            try
             {
                 var skinsDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "DevByteLauncher", "skins");
                 _ = Directory.CreateDirectory(skinsDir);
                 var skinPath = Path.Combine(skinsDir, $"{Settings.Nickname}.png");
+                var skinUrl = $"https://minotar.net/skin/{Settings.Nickname}";
                 var downloaded = await AuthService.DownloadSkinAsync(skinUrl, skinPath);
                 if (downloaded)
                 {
@@ -307,13 +441,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                         ReloadAvatar();
                         OnPropertyChanged(nameof(Settings));
                     });
-                    AddLog($"[{DateTime.Now:HH:mm:ss}] [SKIN] Скин игрока {Settings.Nickname} успешно загружен из облака Microsoft.");
+                    AddLog($"[{DateTime.Now:HH:mm:ss}] [SKIN] Скин игрока {Settings.Nickname} успешно синхронизирован.");
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            AddLog($"[{DateTime.Now:HH:mm:ss}] [ERROR] Ошибка синхронизации скина: {ex.Message}");
+            catch
+            {
+            }
         }
     }
 
@@ -403,6 +536,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         }
 
         LoadShaderState();
+        LoadResourcePacksState();
     }
 
     [RelayCommand]
@@ -444,35 +578,80 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     {
         try
         {
-            var manifest = await ModSyncService.FetchManifestAsync(Settings.ServerHost, Settings.SyncPort);
             var modsDir = Path.Combine(Settings.InstallationPath, "mods");
             _ = Directory.CreateDirectory(modsDir);
 
+            var manifest = await ModSyncService.FetchManifestAsync(Settings.ServerHost, Settings.SyncPort);
+            var manifestLookup = manifest.Files.ToDictionary(f => Path.GetFileName(f.Path), StringComparer.OrdinalIgnoreCase);
+
+            var localFiles = Directory.EnumerateFiles(modsDir, "*.jar*")
+                .Where(f => f.EndsWith(".jar", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".jar.disabled", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
             var items = new List<ModItemViewModel>();
-            foreach (var item in manifest.Files)
+            var processedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var filePath in localFiles)
             {
-                var filePath = Path.Combine(modsDir, Path.GetFileName(item.Path));
-                var disabledPath = filePath + ".disabled";
-                var isInstalled = File.Exists(filePath) || File.Exists(disabledPath);
-                var isEnabled = File.Exists(filePath);
-                var sizeMb = item.Size > 0 ? $"{(double)item.Size / (1024 * 1024):F2} МБ" : "—";
+                var isEnabled = filePath.EndsWith(".jar", StringComparison.OrdinalIgnoreCase);
+                var fullFileName = Path.GetFileName(filePath);
+                var canonicalName = isEnabled ? fullFileName : fullFileName[..^9];
+                _ = processedNames.Add(canonicalName);
+
+                var fileInfo = new FileInfo(filePath);
+                var sizeMb = fileInfo.Length >= 1048576
+                    ? $"{(double)fileInfo.Length / (1024 * 1024):F2} МБ"
+                    : $"{(double)fileInfo.Length / 1024:F0} КБ";
+
+                var displayName = canonicalName.EndsWith(".jar", StringComparison.OrdinalIgnoreCase)
+                    ? canonicalName[..^4]
+                    : canonicalName;
 
                 items.Add(new ModItemViewModel
                 {
-                    Name = item.Name,
-                    FileName = Path.GetFileName(item.Path),
-                    FilePath = isEnabled ? filePath : disabledPath,
+                    Name = displayName,
+                    FileName = canonicalName,
+                    FilePath = filePath,
                     SizeFormatted = sizeMb,
-                    IsInstalled = isInstalled,
+                    IsInstalled = true,
                     IsEnabled = isEnabled,
-                    Status = isInstalled ? (isEnabled ? "Включен" : "Отключен") : "Будет загружен"
+                    Status = isEnabled ? "Включен" : "Отключен"
                 });
             }
+
+            foreach (var kvp in manifestLookup)
+            {
+                if (!processedNames.Contains(kvp.Key))
+                {
+                    var item = kvp.Value;
+                    var sizeMb = item.Size > 0 ? $"{(double)item.Size / (1024 * 1024):F2} МБ" : "—";
+                    var canonicalName = Path.GetFileName(item.Path);
+                    var displayName = canonicalName.EndsWith(".jar", StringComparison.OrdinalIgnoreCase)
+                        ? canonicalName[..^4]
+                        : canonicalName;
+
+                    items.Add(new ModItemViewModel
+                    {
+                        Name = displayName,
+                        FileName = canonicalName,
+                        FilePath = Path.Combine(modsDir, canonicalName),
+                        SizeFormatted = sizeMb,
+                        IsInstalled = false,
+                        IsEnabled = false,
+                        Status = "Будет загружен с сервера"
+                    });
+                }
+            }
+
+            var sorted = items
+                .OrderByDescending(i => i.IsEnabled)
+                .ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
 
             Dispatcher.UIThread.Post(() =>
             {
                 Mods.Clear();
-                foreach (var mod in items)
+                foreach (var mod in sorted)
                 {
                     Mods.Add(mod);
                 }
@@ -602,7 +781,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     {
         try
         {
-            _deviceCodeCts?.Cancel();
+            if (_deviceCodeCts != null)
+            {
+                await _deviceCodeCts.CancelAsync();
+            }
             _deviceCodeCts = new CancellationTokenSource();
             IsBusy = true;
             StatusMessage = "Ожидание авторизации в Microsoft...";
@@ -824,14 +1006,67 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
         try
         {
-            AddLog($"[{DateTime.Now:HH:mm:ss}] Инициализация запуска DevByte Minecraft Fabric 1.21.1...");
+            AddLog($"[{DateTime.Now:HH:mm:ss}] Инициализация запуска DevByte Minecraft Fabric {Settings.MinecraftVersion}...");
             AddLog($"[{DateTime.Now:HH:mm:ss}] Папка установки: {Settings.InstallationPath}, RAM: {AllocatedRamGb} ГБ");
-            StatusMessage = "Проверка обновлений модов с сервера...";
-            var manifest = await ModSyncService.FetchManifestAsync(Settings.ServerHost, Settings.SyncPort);
-            AddLog($"[{DateTime.Now:HH:mm:ss}] Получен манифест сервера: {manifest.Files.Count} модов.");
-            _ = await ModSyncService.SyncModsAsync(Settings.InstallationPath, manifest, progress);
+            StatusMessage = "Проверка обновлений сборки с сервера...";
+            var manifest = await ModSyncService.FetchManifestAsync(Settings.ServerHost, Settings.SyncPort, _cts.Token);
+            if (!string.IsNullOrWhiteSpace(manifest.FabricLoaderVersion))
+            {
+                Settings.FabricVersion = manifest.FabricLoaderVersion;
+            }
+            if (!string.IsNullOrWhiteSpace(manifest.Version))
+            {
+                Settings.MinecraftVersion = manifest.Version;
+            }
+            SaveSettings();
 
-            StatusMessage = "Подготовка к запуску Fabric 1.21.1...";
+            if (manifest.Files.Count > 0)
+            {
+                AddLog($"[{DateTime.Now:HH:mm:ss}] [MODS] Получен манифест сервера: {manifest.Files.Count} модов.");
+                _ = await ModSyncService.SyncModsAsync(Settings.InstallationPath, manifest, progress, _cts.Token);
+            }
+            else
+            {
+                AddLog($"[{DateTime.Now:HH:mm:ss}] [MODS] Синхронизация: задействована локальная сборка клиента ({Settings.InstallationPath}).");
+            }
+
+            IsResourcePacksSyncing = true;
+            ResourcePacksStatusText = "Синхронизация ресурспаков...";
+            AddLog($"[{DateTime.Now:HH:mm:ss}] [RESOURCES] Синхронизация ресурспаков (Fresh Animations, Stay True)...");
+            try
+            {
+                _ = await ModSyncService.SyncResourcePacksAsync(Settings.InstallationPath, manifest, progress, _cts.Token);
+                LoadResourcePacksState();
+                AddLog($"[{DateTime.Now:HH:mm:ss}] [RESOURCES] Ресурспаки успешно синхронизированы.");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"[{DateTime.Now:HH:mm:ss}] [WARN] Пропуск синхронизации ресурспаков: {ex.Message}");
+            }
+            finally
+            {
+                IsResourcePacksSyncing = false;
+            }
+
+            IsShadersSyncing = true;
+            ShadersStatusText = "Синхронизация шейдеров...";
+            AddLog($"[{DateTime.Now:HH:mm:ss}] [SHADERS] Синхронизация шейдерпаков...");
+            try
+            {
+                _ = await ModSyncService.SyncShaderPacksAsync(Settings.InstallationPath, manifest, progress, _cts.Token);
+                LoadShaderState();
+                AddLog($"[{DateTime.Now:HH:mm:ss}] [SHADERS] Шейдерпаки успешно синхронизированы.");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"[{DateTime.Now:HH:mm:ss}] [WARN] Пропуск синхронизации шейдеров: {ex.Message}");
+            }
+            finally
+            {
+                IsShadersSyncing = false;
+            }
+
+            StatusMessage = $"Подготовка к запуску Fabric {Settings.MinecraftVersion}...";
             var process = await MinecraftLaunchService.LaunchGameAsync(Settings, progress, AddLog, _cts.Token);
 
             _gameProcess = process;

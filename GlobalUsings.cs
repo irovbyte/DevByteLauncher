@@ -1,6 +1,7 @@
 global using System.Collections.ObjectModel;
 global using System.Diagnostics;
 global using System.Diagnostics.CodeAnalysis;
+global using System.IO.Compression;
 global using System.Net.Sockets;
 global using System.Runtime.InteropServices;
 global using System.Security.Cryptography;

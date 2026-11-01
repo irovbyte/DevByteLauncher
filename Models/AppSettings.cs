@@ -2,6 +2,8 @@ namespace DevByteLauncher.Models;
 
 public class AppSettings
 {
+    public string MinecraftVersion { get; set; } = "1.20.1";
+    public string FabricVersion { get; set; } = "0.20.1";
     public string InstallationPath { get; set; } = string.Empty;
     public string Nickname { get; set; } = "Player";
     public bool IsMicrosoftAuth { get; set; }

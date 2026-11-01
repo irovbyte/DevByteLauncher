@@ -1,5 +1,11 @@
+# =============================================================================
+# Master .gitattributes for C# / .NET / Cross-Platform (Windows + WSL)
+# =============================================================================
+
+# Default: Git automatically detects text vs binary
 * text=auto
 
+# C# and .NET Solution/Project files -> strictly CRLF
 *.cs text diff=csharp eol=crlf
 *.csx text diff=csharp eol=crlf
 *.xaml text eol=crlf
@@ -14,6 +20,7 @@
 *.config text eol=crlf
 *.editorconfig text eol=crlf
 
+# Web, JSON and Configs -> CRLF
 *.json text eol=crlf
 *.xml text eol=crlf
 *.md text eol=crlf
@@ -22,12 +29,14 @@
 *.resw text eol=crlf
 *.resx text eol=crlf
 
+# Windows Scripts -> CRLF
 *.bat text eol=crlf
 *.cmd text eol=crlf
 *.ps1 text eol=crlf
 *.psm1 text eol=crlf
 *.psd1 text eol=crlf
 
+# Linux and Container files -> strictly LF
 *.sh text eol=lf
 Dockerfile* text eol=lf
 *.dockerfile text eol=lf
@@ -38,6 +47,7 @@ Caddyfile* text eol=lf
 .gitattributes text eol=lf
 .globalconfig text eol=crlf
 
+# Binary Assets -> raw binary, never touch or convert
 *.png binary
 *.jpg binary
 *.jpeg binary

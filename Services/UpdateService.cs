@@ -2,7 +2,7 @@ namespace DevByteLauncher.Services;
 
 public static class UpdateService
 {
-    private static readonly HttpClient t_httpClient = new()
+    private static readonly HttpClient s_httpClient = new()
     {
         Timeout = TimeSpan.FromSeconds(15),
         DefaultRequestHeaders =
@@ -51,7 +51,7 @@ public static class UpdateService
         try
         {
             var url = $"https://api.github.com/repos/{RepositoryOwner}/{RepositoryName}/releases/latest";
-            using var response = await t_httpClient.GetAsync(url, cancellationToken);
+            using var response = await s_httpClient.GetAsync(url, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
                 return info;
@@ -151,7 +151,7 @@ public static class UpdateService
             File.Delete(tempNewExe);
         }
 
-        using (var response = await t_httpClient.GetAsync(update.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken))
+        using (var response = await s_httpClient.GetAsync(update.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken))
         {
             _ = response.EnsureSuccessStatusCode();
 

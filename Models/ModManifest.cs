@@ -6,7 +6,7 @@ public class ModManifest
     public string Version { get; set; } = "1.21.1";
 
     [JsonPropertyName("fabricLoaderVersion")]
-    public string FabricLoaderVersion { get; set; } = "0.16.9";
+    public string FabricLoaderVersion { get; set; } = "0.20.1";
 
     [JsonPropertyName("serverHost")]
     public string ServerHost { get; set; } = "mc.obxodka.one";
@@ -16,6 +16,12 @@ public class ModManifest
 
     [JsonPropertyName("files")]
     public List<ModManifestItem> Files { get; set; } = [];
+
+    [JsonPropertyName("resourcePacks")]
+    public List<ModManifestItem> ResourcePacks { get; set; } = [];
+
+    [JsonPropertyName("shaderPacks")]
+    public List<ModManifestItem> ShaderPacks { get; set; } = [];
 }
 
 public class ModManifestItem

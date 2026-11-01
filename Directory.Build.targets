@@ -19,6 +19,7 @@
     </PropertyGroup>
   </Target>
 
+  <!-- Auto-sync version in SVG assets from version.props -->
   <Target Name="SyncSvgVersionFromProps"
           BeforeTargets="BeforeBuild"
           Condition="'$(MSBuildProjectName)' == 'obxodka.Client' and Exists('$(MSBuildThisFileDirectory).github\assets\animated_header.svg') and Exists('$(MSBuildThisFileDirectory)version.props')"

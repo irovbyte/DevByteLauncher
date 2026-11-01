@@ -2,8 +2,9 @@ namespace DevByteLauncher.Services;
 
 public static class MinecraftLaunchService
 {
-    private static readonly HttpClient t_httpClient = new();
+    private static readonly HttpClient s_httpClient = new();
 
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Disposed on process.Exited.")]
     public static async Task<Process> LaunchGameAsync(
         AppSettings settings,
         IProgress<(string stage, double percentage)>? progress = null,
@@ -16,14 +17,28 @@ public static class MinecraftLaunchService
         var logsDir = Path.Combine(gameDir, "logs");
         _ = Directory.CreateDirectory(logsDir);
 
+        var optionsPath = Path.Combine(gameDir, "options.txt");
+        if (!File.Exists(optionsPath))
+        {
+            await File.WriteAllTextAsync(optionsPath, "lang:ru_ru\nenableVsync:true\nmaxFps:260\ndirectionalAudio:true\nsoundCategory_master:0.8\nsoundCategory_music:0.15\nautoJump:false\npauseOnLostFocus:false\nadvancedItemTooltips:true\noperatorItemsTab:true\nattackIndicator:1\ngamma:1.0\n", cancellationToken);
+        }
+        else
+        {
+            var text = await File.ReadAllTextAsync(optionsPath, cancellationToken);
+            if (text.Contains("lang:en_US", StringComparison.OrdinalIgnoreCase))
+            {
+                await File.WriteAllTextAsync(optionsPath, text.Replace("lang:en_US", "lang:ru_ru", StringComparison.OrdinalIgnoreCase), cancellationToken);
+            }
+        }
+
         progress?.Report(("Инициализация окружения Minecraft...", 5));
         onLogReceived?.Invoke($"[{DateTime.Now:HH:mm:ss}] Инициализация окружения Minecraft...");
 
         var mcPath = new MinecraftPath(gameDir);
         var launcher = new MinecraftLauncher(mcPath);
 
-        const string mcVersion = "1.21.1";
-        const string fabricVersion = "0.20.1";
+        var mcVersion = !string.IsNullOrWhiteSpace(settings.MinecraftVersion) ? settings.MinecraftVersion : "1.20.1";
+        var fabricVersion = !string.IsNullOrWhiteSpace(settings.FabricVersion) ? settings.FabricVersion : "0.16.9";
         var versionName = $"fabric-loader-{fabricVersion}-{mcVersion}";
 
         launcher.FileProgressChanged += (_, e) =>
@@ -35,7 +50,7 @@ public static class MinecraftLaunchService
             }
         };
 
-        progress?.Report(("Проверка базовой версии Minecraft 1.21.1...", 10));
+        progress?.Report(($"Проверка базовой версии Minecraft {mcVersion}...", 10));
         await launcher.InstallAsync(mcVersion, cancellationToken);
 
         progress?.Report(("Проверка профиля Fabric Loader...", 75));
@@ -53,10 +68,10 @@ public static class MinecraftLaunchService
             ServerPort = settings.AutoConnectServer ? settings.ServerPort : 0
         };
 
-        if (!string.IsNullOrWhiteSpace(settings.CustomJavaPath) && File.Exists(settings.CustomJavaPath))
-        {
-            launchOption.JavaPath = settings.CustomJavaPath;
-        }
+        progress?.Report(("Проверка среды исполнения Java 21 LTS...", 92));
+        var javaPath = await JavaService.ResolveJava21Async(settings, progress, onLogReceived, cancellationToken);
+        launchOption.JavaPath = javaPath;
+        onLogReceived?.Invoke($"[{DateTime.Now:HH:mm:ss}] Использована среда Java 21: {javaPath}");
 
         launchOption.JvmArgumentOverrides =
         [
@@ -66,7 +81,7 @@ public static class MinecraftLaunchService
             new MArgument("-XX:+UnlockExperimentalVMOptions"),
             new MArgument("-XX:+DisableExplicitGC"),
             new MArgument("-XX:+AlwaysPreTouch"),
-            new MArgument("-Dfabric.client.title=DevByte Minecraft • Fabric 1.21.1"),
+            new MArgument($"-Dfabric.client.title=DevByte Minecraft • Fabric {mcVersion}"),
             new MArgument("-Ddevbyte.homelab=mc.obxodka.one")
         ];
 
@@ -76,6 +91,9 @@ public static class MinecraftLaunchService
             ? settings.SelectedShaderPack
             : ShaderService.DefaultShader;
         ShaderService.SaveShaderState(settings.InstallationPath, settings.ShadersEnabled, activePack);
+
+        ResourcePackService.EnsureResourcePackEnabled(gameDir, ResourcePackService.DefaultFreshAnimationsPack);
+        ResourcePackService.EnsureResourcePackEnabled(gameDir, ResourcePackService.DefaultStayTruePack);
 
         progress?.Report(("Запуск процесса Minecraft Fabric...", 98));
         var process = await launcher.BuildProcessAsync(versionName, launchOption, cancellationToken);
@@ -99,10 +117,8 @@ public static class MinecraftLaunchService
                 logWriter.WriteLine(args.Data);
                 onLogReceived?.Invoke(args.Data);
 
-                if (args.Data.Contains("Backend library: LWJGL", StringComparison.OrdinalIgnoreCase) ||
-                    args.Data.Contains("OpenAL initialized", StringComparison.OrdinalIgnoreCase) ||
-                    args.Data.Contains("OpenGL Renderer:", StringComparison.OrdinalIgnoreCase) ||
-                    args.Data.Contains("Connecting to", StringComparison.OrdinalIgnoreCase))
+                if (args.Data.Contains("Narrator library for", StringComparison.OrdinalIgnoreCase) ||
+                    args.Data.Contains("OpenAL initialized", StringComparison.OrdinalIgnoreCase) && args.Data.Contains("Sound engine started", StringComparison.OrdinalIgnoreCase))
                 {
                     _ = windowReadyTcs.TrySetResult(true);
                 }
@@ -154,7 +170,7 @@ public static class MinecraftLaunchService
         TaskCompletionSource<bool> windowReadyTcs,
         CancellationToken cancellationToken)
     {
-        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(25));
+        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
 
         try
@@ -169,7 +185,7 @@ public static class MinecraftLaunchService
                 try
                 {
                     process.Refresh();
-                    if (process.MainWindowHandle != IntPtr.Zero)
+                    if (process.MainWindowHandle != IntPtr.Zero && !string.IsNullOrWhiteSpace(process.MainWindowTitle))
                     {
                         _ = windowReadyTcs.TrySetResult(true);
                         return;
@@ -179,7 +195,7 @@ public static class MinecraftLaunchService
                 {
                 }
 
-                await Task.Delay(200, linkedCts.Token);
+                await Task.Delay(250, linkedCts.Token);
             }
         }
         catch (OperationCanceledException)
@@ -205,7 +221,7 @@ public static class MinecraftLaunchService
         _ = Directory.CreateDirectory(versionDir);
         var fabricMetaUrl = $"https://meta.fabricmc.net/v2/versions/loader/{mcVersion}/{fabricVersion}/profile/json";
 
-        var jsonContent = await t_httpClient.GetStringAsync(fabricMetaUrl, cancellationToken);
+        var jsonContent = await s_httpClient.GetStringAsync(fabricMetaUrl, cancellationToken);
         await File.WriteAllTextAsync(jsonFile, jsonContent, cancellationToken);
     }
 }

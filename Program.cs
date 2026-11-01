@@ -3,6 +3,7 @@ namespace DevByteLauncher;
 internal sealed partial class Program
 {
     [LibraryImport("kernel32.dll")]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool AttachConsole(int dwProcessId);
 
@@ -114,7 +115,8 @@ internal sealed partial class Program
                 if (latestCrash != null)
                 {
                     Console.WriteLine("=== RECENT CRASH REPORT: " + Path.GetFileName(latestCrash) + " ===");
-                    foreach (var line in File.ReadLines(latestCrash).Take(60))
+                    var crashLines = await File.ReadAllLinesAsync(latestCrash);
+                    foreach (var line in crashLines.Take(60))
                     {
                         Console.WriteLine(line);
                     }

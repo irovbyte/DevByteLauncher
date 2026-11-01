@@ -2,13 +2,13 @@ namespace DevByteLauncher.Services;
 
 public static class SettingsService
 {
-    private static readonly string t_configDir = Path.Combine(
+    private static readonly string s_configDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "DevByteLauncher"
     );
-    private static readonly string t_configFilePath = Path.Combine(t_configDir, "settings.json");
+    private static readonly string s_configFilePath = Path.Combine(s_configDir, "settings.json");
 
-    private static readonly JsonSerializerOptions t_jsonOptions = new()
+    private static readonly JsonSerializerOptions s_jsonOptions = new()
     {
         WriteIndented = true
     };
@@ -17,9 +17,9 @@ public static class SettingsService
     {
         try
         {
-            if (File.Exists(t_configFilePath))
+            if (File.Exists(s_configFilePath))
             {
-                var json = File.ReadAllText(t_configFilePath);
+                var json = File.ReadAllText(s_configFilePath);
                 var settings = JsonSerializer.Deserialize<AppSettings>(json);
                 if (settings != null)
                 {
@@ -51,9 +51,9 @@ public static class SettingsService
     {
         try
         {
-            _ = Directory.CreateDirectory(t_configDir);
-            var json = JsonSerializer.Serialize(settings, t_jsonOptions);
-            File.WriteAllText(t_configFilePath, json);
+            _ = Directory.CreateDirectory(s_configDir);
+            var json = JsonSerializer.Serialize(settings, s_jsonOptions);
+            File.WriteAllText(s_configFilePath, json);
         }
         catch
         {

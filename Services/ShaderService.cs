@@ -2,7 +2,7 @@ namespace DevByteLauncher.Services;
 
 public static class ShaderService
 {
-    private static readonly HttpClient t_httpClient = new()
+    private static readonly HttpClient s_httpClient = new()
     {
         Timeout = TimeSpan.FromSeconds(30)
     };
@@ -183,7 +183,7 @@ public static class ShaderService
             File.Delete(tempPath);
         }
 
-        using var response = await t_httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        using var response = await s_httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         _ = response.EnsureSuccessStatusCode();
 
         await using (var sourceStream = await response.Content.ReadAsStreamAsync(cancellationToken))

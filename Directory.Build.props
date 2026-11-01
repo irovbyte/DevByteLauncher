@@ -2,14 +2,19 @@
   <Import Project="$(MSBuildThisFileDirectory)version.props" Condition="Exists('$(MSBuildThisFileDirectory)version.props')" />
   <Import Project="$(MSBuildThisFileDirectory)Directory.Build.props.local" Condition="Exists('$(MSBuildThisFileDirectory)Directory.Build.props.local')" />
   <PropertyGroup>
-    <IsWindows Condition="'$([MSBuild]::IsOSPlatform(&quot;Windows&quot;))' == 'true' or '$(OS)' == 'Windows_NT'">true</IsWindows>    <WorkspaceCodeRoot Condition="'$(IsWindows)' == 'true'">$(USERPROFILE)/code/</WorkspaceCodeRoot>
+    <IsWindows Condition="'$([MSBuild]::IsOSPlatform(&quot;Windows&quot;))' == 'true' or '$(OS)' == 'Windows_NT'">true</IsWindows>
+    <WorkspaceCodeRoot Condition="'$(IsWindows)' == 'true'">$([System.IO.Path]::GetFullPath('$(USERPROFILE)/code/').Replace('\', '/'))</WorkspaceCodeRoot>
     <WorkspaceCodeRoot Condition="'$(IsWindows)' != 'true' and Exists('/mnt/c/Users/irovb/code/')">/mnt/c/Users/irovb/code/</WorkspaceCodeRoot>
     <WorkspaceCodeRoot Condition="'$(WorkspaceCodeRoot)' == '' and '$(HOME)' != ''">$(HOME)/code/</WorkspaceCodeRoot>
 
-    <ProjectCacheSubDir Condition="'$(WorkspaceCodeRoot)' != '' and $([System.String]::Copy('$(MSBuildProjectDirectory)/').StartsWith('$(WorkspaceCodeRoot)'))">$([System.String]::Copy('$(MSBuildProjectDirectory)').Substring('$([System.String]::Copy('$(WorkspaceCodeRoot)').Length)'))</ProjectCacheSubDir>
-    <ProjectCacheSubDir Condition="'$(ProjectCacheSubDir)' == ''">$(MSBuildProjectName)</ProjectCacheSubDir>    <CustomCachePath Condition="'$(BUILD_CACHE_PATH)' != ''">$(BUILD_CACHE_PATH)/$(ProjectCacheSubDir)</CustomCachePath>
-    <CustomCachePath Condition="'$(CustomCachePath)' == '' and '$(IsWindows)' == 'true'">C:/BuildCache/$(ProjectCacheSubDir)</CustomCachePath>    <CustomCachePath Condition="'$(IsWindows)' != 'true' and '$(HOME)' != ''">$(HOME)/.cache/build/$(ProjectCacheSubDir)</CustomCachePath>
-    <CustomCachePath Condition="'$(CustomCachePath)' == ''">$(MSBuildProjectDirectory)/.artifacts</CustomCachePath>    <PackageRoot Condition="'$(IsWindows)' == 'true'">$(USERPROFILE)/Documents/Package/</PackageRoot>
+    <NormalizedProjectDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/').Replace('\', '/'))</NormalizedProjectDir>
+    <ProjectCacheSubDir Condition="'$(WorkspaceCodeRoot)' != '' and $([System.String]::Copy('$(NormalizedProjectDir)').StartsWith('$(WorkspaceCodeRoot)'))">$([System.String]::Copy('$(NormalizedProjectDir)').Substring('$([System.String]::Copy('$(WorkspaceCodeRoot)').Length)'))</ProjectCacheSubDir>
+    <ProjectCacheSubDir Condition="'$(ProjectCacheSubDir)' == ''">$(MSBuildProjectName)</ProjectCacheSubDir>
+    <CustomCachePath Condition="'$(BUILD_CACHE_PATH)' != ''">$(BUILD_CACHE_PATH)/$(ProjectCacheSubDir)</CustomCachePath>
+    <CustomCachePath Condition="'$(CustomCachePath)' == '' and '$(IsWindows)' == 'true'">C:/BuildCache/$(ProjectCacheSubDir)</CustomCachePath>
+    <CustomCachePath Condition="'$(IsWindows)' != 'true' and '$(HOME)' != ''">$(HOME)/.cache/build/$(ProjectCacheSubDir)</CustomCachePath>
+    <CustomCachePath Condition="'$(CustomCachePath)' == ''">$(MSBuildProjectDirectory)/.artifacts</CustomCachePath>
+    <PackageRoot Condition="'$(IsWindows)' == 'true'">$(USERPROFILE)/Documents/Package/</PackageRoot>
     <PackageRoot Condition="'$(IsWindows)' != 'true' and Exists('/mnt/c/Users/irovb/Documents/Package/')">/mnt/c/Users/irovb/Documents/Package/</PackageRoot>
     <PackageRoot Condition="'$(PackageRoot)' == '' and '$(HOME)' != ''">$(HOME)/Package/</PackageRoot>
     <PackageRoot Condition="'$(PackageRoot)' == ''">$(MSBuildProjectDirectory)/Package/</PackageRoot>
@@ -32,7 +37,7 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <Features>strict</Features>
     <WarningLevel>9999</WarningLevel>
-    <Version Condition="'$(Version)' == ''">4.8.6</Version>
+    <Version Condition="'$(Version)' == ''">$(AppVersion)</Version>
     <IsTrimmable Condition="'$(PublishAot)' == 'true' or '$(PublishTrimmed)' == 'true'">true</IsTrimmable>
     <EnableTrimAnalyzer Condition="'$(PublishAot)' == 'true' or '$(PublishTrimmed)' == 'true'">true</EnableTrimAnalyzer>
     <JsonSerializerIsReflectionEnabledByDefault Condition="'$(PublishAot)' != 'true' and '$(PublishTrimmed)' != 'true'">true</JsonSerializerIsReflectionEnabledByDefault>

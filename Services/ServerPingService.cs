@@ -33,7 +33,7 @@ public static class ServerPingService
                 var payloadBytes = handshakePayload.ToArray();
                 using var packet = new MemoryStream();
                 WriteVarInt(packet, payloadBytes.Length);
-                packet.Write(payloadBytes, 0, payloadBytes.Length);
+                await packet.WriteAsync(payloadBytes, linkedCts.Token);
 
                 await stream.WriteAsync(packet.ToArray(), linkedCts.Token);
             }
@@ -45,7 +45,7 @@ public static class ServerPingService
                 var payloadBytes = requestPayload.ToArray();
                 using var packet = new MemoryStream();
                 WriteVarInt(packet, payloadBytes.Length);
-                packet.Write(payloadBytes, 0, payloadBytes.Length);
+                await packet.WriteAsync(payloadBytes, linkedCts.Token);
 
                 await stream.WriteAsync(packet.ToArray(), linkedCts.Token);
             }

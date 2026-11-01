@@ -7,7 +7,7 @@ namespace DevByteLauncher.Services;
 public static class AuthService
 {
     private const string MicrosoftClientId = "c36a9fb6-4f2a-41ff-90bd-ae7cc92031eb";
-    private static readonly HttpClient t_httpClient = new();
+    private static readonly HttpClient s_httpClient = new();
 
     private static async Task<JELoginHandler> CreateLoginHandlerAsync(Func<string, string, Task>? onDeviceCode = null)
     {
@@ -76,7 +76,7 @@ public static class AuthService
         {
             using var req = new HttpRequestMessage(HttpMethod.Get, "https://api.minecraftservices.com/minecraft/profile");
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-            using var res = await t_httpClient.SendAsync(req);
+            using var res = await s_httpClient.SendAsync(req);
             if (!res.IsSuccessStatusCode)
             {
                 return (null, "classic");
@@ -109,7 +109,7 @@ public static class AuthService
     {
         try
         {
-            var bytes = await t_httpClient.GetByteArrayAsync(skinUrl);
+            var bytes = await s_httpClient.GetByteArrayAsync(skinUrl);
             var dir = Path.GetDirectoryName(destinationPath);
             if (!string.IsNullOrWhiteSpace(dir))
             {
@@ -134,10 +134,11 @@ public static class AuthService
             }
 
             using var form = new MultipartFormDataContent();
-            form.Add(new StringContent(variant.ToLowerInvariant()), "variant");
+            using var variantContent = new StringContent(variant.ToLowerInvariant());
+            form.Add(variantContent, "variant");
 
             var fileBytes = await File.ReadAllBytesAsync(skinFilePath);
-            var imageContent = new ByteArrayContent(fileBytes);
+            using var imageContent = new ByteArrayContent(fileBytes);
             imageContent.Headers.ContentType = new MediaTypeHeaderValue("image/png");
             form.Add(imageContent, "file", Path.GetFileName(skinFilePath));
 
@@ -147,7 +148,7 @@ public static class AuthService
             };
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-            using var res = await t_httpClient.SendAsync(req);
+            using var res = await s_httpClient.SendAsync(req);
             return res.IsSuccessStatusCode;
         }
         catch
