@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 namespace DevByteLauncher.Services;
 
 public static class ModSyncService
@@ -10,7 +12,7 @@ public static class ModSyncService
 
     private static readonly HttpClient s_httpClient = new(s_handler)
     {
-        Timeout = TimeSpan.FromSeconds(30)
+        Timeout = TimeSpan.FromMinutes(2)
     };
 
     public static async Task<ModManifest> FetchManifestAsync(string host, int port, CancellationToken cancellationToken = default)
@@ -21,20 +23,27 @@ public static class ModSyncService
         }
 
         var url = $"http://{host}:{port}/manifest.json";
-        try
+        for (var attempt = 1; attempt <= 2; attempt++)
         {
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            cts.CancelAfter(TimeSpan.FromSeconds(2));
-
-            var response = await s_httpClient.GetStringAsync(url, cts.Token);
-            var manifest = JsonSerializer.Deserialize<ModManifest>(response);
-            if (manifest != null && (manifest.Files.Count > 0 || manifest.ResourcePacks.Count > 0 || manifest.ShaderPacks.Count > 0))
+            try
             {
-                return manifest;
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                cts.CancelAfter(TimeSpan.FromSeconds(15));
+
+                var response = await s_httpClient.GetStringAsync(url, cts.Token);
+                var manifest = JsonSerializer.Deserialize<ModManifest>(response);
+                if (manifest != null && (manifest.Files.Count > 0 || manifest.ResourcePacks.Count > 0 || manifest.ShaderPacks.Count > 0))
+                {
+                    return manifest;
+                }
             }
-        }
-        catch
-        {
+            catch when (attempt < 2 && !cancellationToken.IsCancellationRequested)
+            {
+                await Task.Delay(1000, cancellationToken);
+            }
+            catch
+            {
+            }
         }
 
         return new ModManifest { Files = [] };
@@ -130,18 +139,21 @@ public static class ModSyncService
         {
             var parallelOptions = new ParallelOptions
             {
-                MaxDegreeOfParallelism = 12,
+                MaxDegreeOfParallelism = 4,
                 CancellationToken = cancellationToken
             };
+
+            var failedMods = new ConcurrentBag<string>();
 
             await Parallel.ForEachAsync(toDownload, parallelOptions, async (entry, ct) =>
             {
                 try
                 {
-                    await DownloadFileAsync(entry.item.Url, entry.targetPath, ct);
+                    await DownloadWithRetryAsync(entry.item.Url, entry.targetPath, entry.item.Size, entry.item.Sha1, 3, ct);
                 }
-                catch
+                catch (Exception)
                 {
+                    failedMods.Add(entry.item.Name);
                 }
                 finally
                 {
@@ -150,6 +162,13 @@ public static class ModSyncService
                     progress?.Report(($"Загрузка: {entry.item.Name} ({current}/{totalFiles})...", progressPercent));
                 }
             });
+
+            if (!failedMods.IsEmpty)
+            {
+                var failedSample = string.Join(", ", failedMods.Take(3));
+                progress?.Report(($"Не удалось загрузить {failedMods.Count} модов ({failedSample}). Проверьте соединение.", 100));
+                return false;
+            }
         }
 
         progress?.Report(("Все моды успешно синхронизированы!", 100));
@@ -229,7 +248,7 @@ public static class ModSyncService
         {
             var parallelOptions = new ParallelOptions
             {
-                MaxDegreeOfParallelism = 4,
+                MaxDegreeOfParallelism = 3,
                 CancellationToken = cancellationToken
             };
 
@@ -237,7 +256,7 @@ public static class ModSyncService
             {
                 try
                 {
-                    await DownloadFileAsync(entry.item.Url, entry.targetPath, ct);
+                    await DownloadWithRetryAsync(entry.item.Url, entry.targetPath, entry.item.Size, entry.item.Sha1, 3, ct);
                 }
                 catch
                 {
@@ -331,7 +350,7 @@ public static class ModSyncService
         {
             var parallelOptions = new ParallelOptions
             {
-                MaxDegreeOfParallelism = 4,
+                MaxDegreeOfParallelism = 3,
                 CancellationToken = cancellationToken
             };
 
@@ -339,7 +358,7 @@ public static class ModSyncService
             {
                 try
                 {
-                    await DownloadFileAsync(entry.item.Url, entry.targetPath, ct);
+                    await DownloadWithRetryAsync(entry.item.Url, entry.targetPath, entry.item.Size, entry.item.Sha1, 3, ct);
                 }
                 catch
                 {
@@ -376,7 +395,37 @@ public static class ModSyncService
         return modsOk && rpOk && spOk;
     }
 
-    public static async Task DownloadFileAsync(string url, string destinationPath, CancellationToken cancellationToken)
+    public static async Task DownloadWithRetryAsync(
+        string url,
+        string destinationPath,
+        long expectedSize,
+        string? expectedSha1,
+        int maxRetries,
+        CancellationToken cancellationToken)
+    {
+        for (var attempt = 1; attempt <= maxRetries; attempt++)
+        {
+            try
+            {
+                await DownloadFileAsync(url, destinationPath, expectedSize, expectedSha1, cancellationToken);
+                return;
+            }
+            catch (Exception) when (attempt < maxRetries && !cancellationToken.IsCancellationRequested)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(500 * attempt), cancellationToken);
+            }
+        }
+    }
+
+    public static Task DownloadFileAsync(string url, string destinationPath, CancellationToken cancellationToken)
+        => DownloadFileAsync(url, destinationPath, 0, null, cancellationToken);
+
+    public static async Task DownloadFileAsync(
+        string url,
+        string destinationPath,
+        long expectedSize,
+        string? expectedSha1,
+        CancellationToken cancellationToken)
     {
         var tempFile = destinationPath + ".tmp";
         try
@@ -388,6 +437,21 @@ public static class ModSyncService
             await using (var streamToWriteTo = File.Open(tempFile, FileMode.Create, FileAccess.Write, FileShare.None))
             {
                 await streamToReadFrom.CopyToAsync(streamToWriteTo, cancellationToken);
+            }
+
+            var tempInfo = new FileInfo(tempFile);
+            if (expectedSize > 0 && tempInfo.Length != expectedSize)
+            {
+                throw new IOException($"Файл поврежден (размер не совпадает): ожидалось {expectedSize}, получено {tempInfo.Length}");
+            }
+
+            if (!string.IsNullOrEmpty(expectedSha1))
+            {
+                var localSha1 = CalculateSha1(tempFile);
+                if (!string.Equals(localSha1, expectedSha1, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new IOException($"Файл поврежден (хэш SHA-1 не совпадает): ожидалось {expectedSha1}, получено {localSha1}");
+                }
             }
 
             if (File.Exists(destinationPath))

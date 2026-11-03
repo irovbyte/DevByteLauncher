@@ -38,7 +38,7 @@ public static class MinecraftLaunchService
         var launcher = new MinecraftLauncher(mcPath);
 
         var mcVersion = !string.IsNullOrWhiteSpace(settings.MinecraftVersion) ? settings.MinecraftVersion : "1.20.1";
-        var fabricVersion = !string.IsNullOrWhiteSpace(settings.FabricVersion) ? settings.FabricVersion : "0.16.9";
+        var fabricVersion = !string.IsNullOrWhiteSpace(settings.FabricVersion) ? settings.FabricVersion : "0.20.1";
         var versionName = $"fabric-loader-{fabricVersion}-{mcVersion}";
 
         launcher.FileProgressChanged += (_, e) =>
@@ -118,7 +118,7 @@ public static class MinecraftLaunchService
                 onLogReceived?.Invoke(args.Data);
 
                 if (args.Data.Contains("Narrator library for", StringComparison.OrdinalIgnoreCase) ||
-                    args.Data.Contains("OpenAL initialized", StringComparison.OrdinalIgnoreCase) && args.Data.Contains("Sound engine started", StringComparison.OrdinalIgnoreCase))
+                    (args.Data.Contains("OpenAL initialized", StringComparison.OrdinalIgnoreCase) && args.Data.Contains("Sound engine started", StringComparison.OrdinalIgnoreCase)))
                 {
                     _ = windowReadyTcs.TrySetResult(true);
                 }

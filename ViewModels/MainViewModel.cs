@@ -1023,11 +1023,29 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
             if (manifest.Files.Count > 0)
             {
                 AddLog($"[{DateTime.Now:HH:mm:ss}] [MODS] Получен манифест сервера: {manifest.Files.Count} модов.");
-                _ = await ModSyncService.SyncModsAsync(Settings.InstallationPath, manifest, progress, _cts.Token);
+                var syncOk = await ModSyncService.SyncModsAsync(Settings.InstallationPath, manifest, progress, _cts.Token);
+                if (!syncOk)
+                {
+                    StatusMessage = "Не удалось загрузить все моды сборки. Запуск отменен.";
+                    AddLog($"[{DateTime.Now:HH:mm:ss}] [ERROR] Запуск отменен: часть модов не загрузилась из-за нестабильности сети. Повторите попытку.");
+                    IsBusy = false;
+                    IsProgressVisible = false;
+                    return;
+                }
             }
             else
             {
-                AddLog($"[{DateTime.Now:HH:mm:ss}] [MODS] Синхронизация: задействована локальная сборка клиента ({Settings.InstallationPath}).");
+                var modsDir = Path.Combine(Settings.InstallationPath, "mods");
+                var localJars = Directory.Exists(modsDir) ? Directory.GetFiles(modsDir, "*.jar").Length : 0;
+                if (localJars < 10)
+                {
+                    StatusMessage = "Не удалось подключиться к серверу сборки (mc.obxodka.one). Запуск отменен.";
+                    AddLog($"[{DateTime.Now:HH:mm:ss}] [ERROR] Сервер сборки недоступен и локальная папка mods пуста ({localJars} модов). Подключитесь к интернету и повторите попытку.");
+                    IsBusy = false;
+                    IsProgressVisible = false;
+                    return;
+                }
+                AddLog($"[{DateTime.Now:HH:mm:ss}] [MODS] Синхронизация: задействована локальная сборка клиента ({localJars} модов).");
             }
 
             IsResourcePacksSyncing = true;

@@ -31,6 +31,15 @@ public static class SettingsService
                     {
                         settings.SelectedShaderPack = "photon_v1.4.zip";
                     }
+
+                    // Auto-migrate to Homelab Fabric 1.20.1 stack for any legacy configs
+                    if (settings.MinecraftVersion != "1.20.1" || string.IsNullOrWhiteSpace(settings.FabricVersion) || settings.FabricVersion == "0.16.9")
+                    {
+                        settings.MinecraftVersion = "1.20.1";
+                        settings.FabricVersion = "0.20.1";
+                        SaveSettings(settings);
+                    }
+
                     return settings;
                 }
             }
