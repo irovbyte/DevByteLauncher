@@ -34,6 +34,11 @@ public static class MinecraftLaunchService
         progress?.Report(("Инициализация окружения Minecraft...", 5));
         onLogReceived?.Invoke($"[{DateTime.Now:HH:mm:ss}] Инициализация окружения Minecraft...");
 
+        var serverDisplayAddress = !string.IsNullOrWhiteSpace(settings.ServerHost)
+            ? (settings.ServerPort is > 0 and not 25565 ? $"{settings.ServerHost}:{settings.ServerPort}" : settings.ServerHost)
+            : "mc.obxodka.one";
+        EnsureServerListEntry(gameDir, "DevByte Homelab", serverDisplayAddress);
+
         var mcPath = new MinecraftPath(gameDir);
         var launcher = new MinecraftLauncher(mcPath);
 
@@ -223,5 +228,74 @@ public static class MinecraftLaunchService
 
         var jsonContent = await s_httpClient.GetStringAsync(fabricMetaUrl, cancellationToken);
         await File.WriteAllTextAsync(jsonFile, jsonContent, cancellationToken);
+    }
+
+    public static void EnsureServerListEntry(string gameDir, string serverName, string serverAddress)
+    {
+        try
+        {
+            var serversFile = Path.Combine(gameDir, "servers.dat");
+            if (File.Exists(serversFile))
+            {
+                var bytes = File.ReadAllBytes(serversFile);
+                var addressBytes = Encoding.UTF8.GetBytes(serverAddress);
+                if (bytes.AsSpan().IndexOf(addressBytes) >= 0)
+                {
+                    return;
+                }
+            }
+
+            using var ms = new MemoryStream();
+
+            // Root TAG_Compound (id 10), empty name
+            ms.WriteByte(10);
+            WriteNbtString(ms, string.Empty);
+
+            // TAG_List (id 9), name "servers"
+            ms.WriteByte(9);
+            WriteNbtString(ms, "servers");
+            ms.WriteByte(10); // Element type: TAG_Compound
+
+            // Count = 1 (Int32 BigEndian)
+            Span<byte> intBuf = stackalloc byte[4];
+            System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(intBuf, 1);
+            ms.Write(intBuf);
+
+            // Item compound
+            // TAG_String "name"
+            ms.WriteByte(8);
+            WriteNbtString(ms, "name");
+            WriteNbtString(ms, serverName);
+
+            // TAG_String "ip"
+            ms.WriteByte(8);
+            WriteNbtString(ms, "ip");
+            WriteNbtString(ms, serverAddress);
+
+            // TAG_Byte "hidden" = 0
+            ms.WriteByte(1);
+            WriteNbtString(ms, "hidden");
+            ms.WriteByte(0);
+
+            // TAG_End (item)
+            ms.WriteByte(0);
+
+            // TAG_End (root)
+            ms.WriteByte(0);
+
+            File.WriteAllBytes(serversFile, ms.ToArray());
+        }
+        catch
+        {
+        }
+    }
+
+    private static void WriteNbtString(Stream stream, string value)
+    {
+        var bytes = Encoding.UTF8.GetBytes(value);
+        Span<byte> lenBuf = stackalloc byte[2];
+        System.Buffers.Binary.BinaryPrimitives.WriteInt16BigEndian(lenBuf, (short)bytes.Length);
+        stream.Write(lenBuf);
+        stream.Write(bytes);
     }
 }
