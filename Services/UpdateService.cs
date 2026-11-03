@@ -4,12 +4,21 @@ public static class UpdateService
 {
     private static readonly HttpClient s_httpClient = new()
     {
-        Timeout = TimeSpan.FromSeconds(15),
+        Timeout = TimeSpan.FromSeconds(30),
         DefaultRequestHeaders =
         {
             { "User-Agent", "DevByteLauncher" },
             { "Accept", "application/vnd.github.v3+json" }
         }
+    };
+
+    private static readonly HttpClient s_noRedirectClient = new(new SocketsHttpHandler
+    {
+        AllowAutoRedirect = false,
+        PooledConnectionLifetime = TimeSpan.FromMinutes(2)
+    })
+    {
+        Timeout = TimeSpan.FromSeconds(15)
     };
 
     public static string CurrentVersion { get; } =
@@ -48,6 +57,44 @@ public static class UpdateService
             IsAvailable = false
         };
 
+        // Channel 1: Query GitHub Releases redirect (Completely immune to GitHub REST API rate limits)
+        try
+        {
+            var latestUrl = $"https://github.com/{RepositoryOwner}/{RepositoryName}/releases/latest";
+            using var request = new HttpRequestMessage(HttpMethod.Get, latestUrl);
+            request.Headers.Add("User-Agent", "DevByteLauncher");
+            using var response = await s_noRedirectClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+
+            var location = response.Headers.Location?.ToString();
+            if (!string.IsNullOrEmpty(location))
+            {
+                var rawTag = location.Split('/').LastOrDefault() ?? string.Empty;
+                var cleanTag = rawTag.TrimStart('v', 'V');
+                if (Version.TryParse(cleanTag, out var remoteVer) && Version.TryParse(CurrentVersion, out var localVer))
+                {
+                    if (remoteVer > localVer)
+                    {
+                        var assetName = OperatingSystem.IsWindows()
+                            ? "DevByteLauncher.exe"
+                            : "DevByteLauncher-linux-x64";
+                        info.LatestVersion = cleanTag;
+                        info.ReleaseName = $"Обновление v{cleanTag}";
+                        info.DownloadUrl = $"https://github.com/{RepositoryOwner}/{RepositoryName}/releases/download/v{cleanTag}/{assetName}";
+                        info.IsAvailable = true;
+                        return info;
+                    }
+                    else
+                    {
+                        return info;
+                    }
+                }
+            }
+        }
+        catch
+        {
+        }
+
+        // Channel 2: Fallback to GitHub REST API if redirect was blocked or failed
         try
         {
             var url = $"https://api.github.com/repos/{RepositoryOwner}/{RepositoryName}/releases/latest";
