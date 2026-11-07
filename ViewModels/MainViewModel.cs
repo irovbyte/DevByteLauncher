@@ -483,6 +483,17 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
             OnPropertyChanged(nameof(Settings));
             AddLog($"[{DateTime.Now:HH:mm:ss}] [SKIN] Скин успешно обновлен локально.");
 
+            var uploadedToServer = await SkinService.UploadSkinToServerAsync(
+                Settings.ServerHost,
+                Settings.SyncPort,
+                Settings.Nickname,
+                destPath).ConfigureAwait(false);
+
+            if (uploadedToServer)
+            {
+                AddLog($"[{DateTime.Now:HH:mm:ss}] [SKIN] Скин игрока {Settings.Nickname} успешно опубликован на сервере DevByte (виден всем игрокам сборки).");
+            }
+
             if (Settings.IsMicrosoftAuth)
             {
                 StatusMessage = "Синхронизация скина с облаком Microsoft...";
@@ -504,7 +515,9 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
             }
             else
             {
-                StatusMessage = "Скин успешно обновлен!";
+                StatusMessage = uploadedToServer
+                    ? "Скин успешно обновлен и опубликован на сервере DevByte!"
+                    : "Скин успешно обновлен локально!";
             }
         }
         catch (Exception ex)
@@ -1105,6 +1118,18 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
             catch (Exception ex)
             {
                 AddLog($"[{DateTime.Now:HH:mm:ss}] [WARN] Пропуск синхронизации конфигураций: {ex.Message}");
+            }
+
+            try
+            {
+                SkinService.EnsureCustomSkinLoaderConfig(Settings.InstallationPath, Settings.ServerHost, Settings.SyncPort);
+                if (!string.IsNullOrWhiteSpace(Settings.SelectedSkinPath) && File.Exists(Settings.SelectedSkinPath))
+                {
+                    _ = SkinService.UploadSkinToServerAsync(Settings.ServerHost, Settings.SyncPort, Settings.Nickname, Settings.SelectedSkinPath);
+                }
+            }
+            catch
+            {
             }
 
             StatusMessage = $"Подготовка к запуску Fabric {Settings.MinecraftVersion}...";

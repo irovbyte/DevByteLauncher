@@ -1,7 +1,11 @@
+using System.Net.Http;
+using System.Net.Http.Headers;
+
 namespace DevByteLauncher.Services;
 
 public static class SkinService
 {
+    private static readonly HttpClient s_httpClient = new() { Timeout = TimeSpan.FromSeconds(15) };
     public static Bitmap? LoadAvatarHead(string? skinPath, int targetSize = 64)
     {
         try
@@ -79,5 +83,107 @@ public static class SkinService
         using var data = image.Encode(SKEncodedImageFormat.Png, 100);
         using var ms = new MemoryStream(data.ToArray());
         return new Bitmap(ms);
+    }
+
+    public static async Task<bool> UploadSkinToServerAsync(
+        string host,
+        int port,
+        string nickname,
+        string skinFilePath,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(skinFilePath) || !File.Exists(skinFilePath))
+            {
+                return false;
+            }
+
+            var cleanNickname = nickname?.Trim();
+            if (string.IsNullOrWhiteSpace(cleanNickname) || cleanNickname == "Player")
+            {
+                return false;
+            }
+
+            var fileBytes = await File.ReadAllBytesAsync(skinFilePath, cancellationToken).ConfigureAwait(false);
+            if (fileBytes.Length is 0 or > 2 * 1024 * 1024)
+            {
+                return false;
+            }
+
+            var url = $"http://{host}:{port}/api/skin/upload?nickname={Uri.EscapeDataString(cleanNickname)}";
+            using var content = new ByteArrayContent(fileBytes);
+            content.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+
+            using var req = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = content
+            };
+
+            using var resp = await s_httpClient.SendAsync(req, cancellationToken).ConfigureAwait(false);
+            return resp.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public static void EnsureCustomSkinLoaderConfig(string installationPath, string host, int port)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(installationPath) || !Directory.Exists(installationPath))
+            {
+                return;
+            }
+
+            var cslDir = Path.Combine(installationPath, "CustomSkinLoader");
+            var extraListDir = Path.Combine(cslDir, "ExtraList");
+            _ = Directory.CreateDirectory(cslDir);
+            _ = Directory.CreateDirectory(extraListDir);
+
+            var cslConfigPath = Path.Combine(cslDir, "CustomSkinLoader.json");
+            var rootUrl = $"http://{host}:{port}/csl/";
+
+            var configJson = $$"""
+            {
+              "version": "15.0.1",
+              "enableTransparentSkin": true,
+              "enableCape": true,
+              "loadlist": [
+                {
+                  "name": "DevByteServer",
+                  "type": "CustomSkinAPI",
+                  "root": "{{rootUrl}}"
+                },
+                {
+                  "name": "Mojang",
+                  "type": "MojangAPI"
+                },
+                {
+                  "name": "ElyBy",
+                  "type": "ElyByAPI"
+                }
+              ]
+            }
+            """;
+
+            File.WriteAllText(cslConfigPath, configJson);
+
+            var extraConfigPath = Path.Combine(extraListDir, "devbyte.json");
+            var extraJson = $$"""
+            {
+              "name": "DevByteServer",
+              "type": "CustomSkinAPI",
+              "root": "{{rootUrl}}"
+            }
+            """;
+
+            File.WriteAllText(extraConfigPath, extraJson);
+        }
+        catch
+        {
+        }
     }
 }

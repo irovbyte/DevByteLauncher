@@ -52,8 +52,14 @@ DevByte Launcher — клиентский лаунчер для выделенн
   - **Роль**: Обнаружение установленных JRE/JDK 17/21 или автоматическая загрузка Adoptium Temurin.
 - `Services/AuthService.cs`
   - **Роль**: Microsoft OAuth авторизация и валидация оффлайн никнеймов.
-- `Services/ResourcePackService.cs` & `Services/ShaderService.cs` & `Services/SkinService.cs`
-  - **Роль**: Вспомогательные сервисы управления графическими компонентами и скинами игроков.
+- `Services/ResourcePackService.cs` & `Services/ShaderService.cs`
+  - **Роль**: Вспомогательные сервисы управления ресурспаками и шейдерами сборки.
+- `Services/SkinService.cs`
+  - **Роль**: Декодирование скинов игроков через SkiaSharp для UI-аватара, загрузка скинов на сервер DevByte и авто-генерация конфигурации CustomSkinLoader.
+  - **Ключевые методы**:
+    - `LoadAvatarHead(skinPath, targetSize)`: Извлекает лицо и шлем из PNG-текстуры для отображения в Fluent 2 интерфейсе.
+    - `UploadSkinToServerAsync(host, port, nickname, skinFilePath, ct)`: Отправляет PNG-текстуру по HTTP `POST /api/skin/upload?nickname={nickname}` на сервер сборки.
+    - `EnsureCustomSkinLoaderConfig(installationPath, host, port)`: Автоматически формирует `CustomSkinLoader/CustomSkinLoader.json` и `ExtraList/devbyte.json` с цепочкой провайдеров DevByte CustomSkinAPI -> MojangAPI -> ElyByAPI.
 - `Services/UpdateService.cs`
   - **Роль**: Проверка релизов лаунчера через GitHub API.
 
@@ -63,8 +69,9 @@ DevByte Launcher — клиентский лаунчер для выделенн
 - `ViewModels/MainViewModel.cs`
   - **Роль**: Главный координатор состояния UI, команд и фоновых процессов.
   - **Ключевые свойства**: `StatusMessage`, `ProgressPercentage`, `IsBusy`, `CurrentDriveSummary`, `ServerStatus`, `Logs`.
-  - **Ключевые команды**:
-    - `PlayCommand`: Запуск синхронизации и игры.
+  - **Ключевые команды и методы**:
+    - `PlayCommand`: Запуск синхронизации модов/шейдеров/конфигов, обеспечение CSL-конфигурации, фоновая выгрузка скина оффлайн-игрока и запуск игры.
+    - `ChangeSkinAsync(newSkinFilePath)`: Сохраняет скин локально, обновляет аватар, публикует в облако Microsoft (для лицензий) и выгружает на DevByte Server (для оффлайн-игроков через CSL).
     - `UpdateDriveSummary()`: Форматирует путь к папке установки (`~/.local/share/DevByteMC` на Linux или `C:\Games\DevByteMC` на Windows) и свободное место.
   - **SSOT**: Оркестрирует `AppSettings` и передает путь `Settings.InstallationPath` сервисам синхронизации.
 - `Views/MainWindow.axaml` / `MainWindow.axaml.cs`
@@ -73,6 +80,10 @@ DevByte Launcher — клиентский лаунчер для выделенн
 ---
 
 ## 4. Векторные потоки данных
-- **Запуск игры**: `PlayCommand` -> `ModSyncService.FetchManifestAsync` -> `ModSyncService.SyncModsAsync` -> `Resource/Shader Sync` -> `Config/Keybind Sync` -> `MinecraftLaunchService.LaunchAsync`.
+- **Запуск игры**: `PlayCommand` -> `ModSyncService.FetchManifestAsync` -> `ModSyncService.SyncModsAsync` -> `Resource/Shader Sync` -> `Config/Keybind Sync` -> `SkinService.EnsureCustomSkinLoaderConfig` -> `MinecraftLaunchService.LaunchAsync`.
+- **Синхронизация скинов (Skin Pipeline)**:
+  - Лицензия (Microsoft): `ChangeSkinAsync` -> `AuthService.UploadSkinToCloudAsync` -> Mojang Sessions.
+  - Оффлайн (Milano и др.): `ChangeSkinAsync` / `PlayAsync` -> `SkinService.UploadSkinToServerAsync` -> HTTP POST `/api/skin/upload` (`sync_server.py`) -> Сохранение в `/home/irovbyte/minecraft/skins/{nickname}.png`.
+  - В игре: Клиентский мод `CustomSkinLoader` (синхронизируется лаунчером) запрашивает `http://mc.obxodka.one:25566/csl/{player}.json` -> мгновенно отображает скин оффлайн-игрока для всех участников; для лицензий фолбэчится на `MojangAPI`.
 - **Фоновый опрос**: Таймер 15с -> `ServerPingService.PingServerAsync` -> `ServerStatus`.
-- **Серверный HTTP демон**: DEVBYTE `192.168.1.3:25566` (`sync_server.py`, таймаут 300с, HTTP 206 Partial Content / `Range: bytes`, раздача модов, ресурспаков, шейдеров и `configs/defaultoptions/keybindings.txt`).
+- **Серверный HTTP демон**: DEVBYTE `192.168.1.3:25566` (`sync_server.py`, таймаут 300с, HTTP 206 Partial Content / `Range: bytes`, раздача модов, ресурспаков, шейдеров, `configs/defaultoptions/keybindings.txt`, эндпоинты `/csl/{player}.json`, `/skins/{file}`, `POST /api/skin/upload`).
