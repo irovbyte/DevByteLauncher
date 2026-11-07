@@ -568,7 +568,19 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
     private void UpdateDriveSummary()
     {
         var info = SettingsService.GetDriveForPath(Settings.InstallationPath);
-        CurrentDriveSummary = info != null ? $"{info.Name} ({info.FreeGigabytes:F1} ГБ свободно из {info.TotalGigabytes:F1} ГБ)" : "Путь не указан";
+        var displayPath = Settings.InstallationPath;
+        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
+        {
+            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            if (!string.IsNullOrEmpty(home) && displayPath.StartsWith(home, StringComparison.Ordinal))
+            {
+                displayPath = "~" + displayPath[home.Length..];
+            }
+        }
+
+        CurrentDriveSummary = info != null
+            ? $"{displayPath} ({info.FreeGigabytes:F1} ГБ свободно из {info.TotalGigabytes:F1} ГБ)"
+            : (!string.IsNullOrEmpty(displayPath) ? displayPath : "Путь не указан");
     }
 
     public void SaveSettings() => SettingsService.SaveSettings(Settings);

@@ -6,13 +6,13 @@ public static class ModSyncService
 {
     private static readonly SocketsHttpHandler s_handler = new()
     {
-        PooledConnectionLifetime = TimeSpan.FromMinutes(2),
+        PooledConnectionLifetime = TimeSpan.FromMinutes(5),
         MaxConnectionsPerServer = 32
     };
 
     private static readonly HttpClient s_httpClient = new(s_handler)
     {
-        Timeout = TimeSpan.FromMinutes(2)
+        Timeout = TimeSpan.FromMinutes(10)
     };
 
     public static async Task<ModManifest> FetchManifestAsync(string host, int port, CancellationToken cancellationToken = default)
@@ -94,8 +94,12 @@ public static class ModSyncService
             return true;
         }
 
+        progress?.Report(("Синхронизация списка модов...", 1));
+
         var toDownload = new List<(ModManifestItem item, string targetPath)>();
         var processed = 0;
+
+        progress?.Report(($"Проверка целостности модов ({totalFiles} шт)...", 3));
 
         foreach (var item in manifest.Files)
         {
@@ -137,6 +141,8 @@ public static class ModSyncService
 
         if (toDownload.Count > 0)
         {
+            progress?.Report(($"Подготовка к загрузке {toDownload.Count} файлов сборки...", 5));
+
             var parallelOptions = new ParallelOptions
             {
                 MaxDegreeOfParallelism = 4,
@@ -147,9 +153,24 @@ public static class ModSyncService
 
             await Parallel.ForEachAsync(toDownload, parallelOptions, async (entry, ct) =>
             {
+                var fileProgress = new Progress<(long bytesRead, long totalBytes)>(p =>
+                {
+                    var readMb = p.bytesRead / (1024.0 * 1024.0);
+                    var totalMb = p.totalBytes / (1024.0 * 1024.0);
+                    var pct = totalFiles > 0 ? (double)processed / totalFiles * 100.0 : 0.0;
+                    if (totalMb >= 3.0)
+                    {
+                        progress?.Report(($"Загрузка ({processed + 1}/{totalFiles}): {entry.item.Name} ({readMb:F1}/{totalMb:F1} МБ)...", pct));
+                    }
+                    else
+                    {
+                        progress?.Report(($"Загрузка ({processed + 1}/{totalFiles}): {entry.item.Name}...", pct));
+                    }
+                });
+
                 try
                 {
-                    await DownloadWithRetryAsync(entry.item.Url, entry.targetPath, entry.item.Size, entry.item.Sha1, 3, ct);
+                    await DownloadWithRetryAsync(entry.item.Url, entry.targetPath, entry.item.Size, entry.item.Sha1, 3, ct, fileProgress);
                 }
                 catch (Exception)
                 {
@@ -401,13 +422,14 @@ public static class ModSyncService
         long expectedSize,
         string? expectedSha1,
         int maxRetries,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IProgress<(long bytesRead, long totalBytes)>? fileProgress = null)
     {
         for (var attempt = 1; attempt <= maxRetries; attempt++)
         {
             try
             {
-                await DownloadFileAsync(url, destinationPath, expectedSize, expectedSha1, cancellationToken);
+                await DownloadFileAsync(url, destinationPath, expectedSize, expectedSha1, cancellationToken, fileProgress);
                 return;
             }
             catch (Exception) when (attempt < maxRetries && !cancellationToken.IsCancellationRequested)
@@ -418,25 +440,73 @@ public static class ModSyncService
     }
 
     public static Task DownloadFileAsync(string url, string destinationPath, CancellationToken cancellationToken)
-        => DownloadFileAsync(url, destinationPath, 0, null, cancellationToken);
+        => DownloadFileAsync(url, destinationPath, 0, null, cancellationToken, null);
 
     public static async Task DownloadFileAsync(
         string url,
         string destinationPath,
         long expectedSize,
         string? expectedSha1,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IProgress<(long bytesRead, long totalBytes)>? fileProgress = null)
     {
         var tempFile = destinationPath + ".tmp";
         try
         {
-            using var response = await s_httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-            _ = response.EnsureSuccessStatusCode();
+            var existingLength = File.Exists(tempFile) ? new FileInfo(tempFile).Length : 0L;
+            HttpResponseMessage response;
+            FileStream streamToWriteTo;
+            long startOffset = 0;
 
-            await using (var streamToReadFrom = await response.Content.ReadAsStreamAsync(cancellationToken))
-            await using (var streamToWriteTo = File.Open(tempFile, FileMode.Create, FileAccess.Write, FileShare.None))
+            if (existingLength > 0 && expectedSize > 0 && existingLength < expectedSize)
             {
-                await streamToReadFrom.CopyToAsync(streamToWriteTo, cancellationToken);
+                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(existingLength, null);
+                response = await s_httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+
+                if (response.StatusCode == System.Net.HttpStatusCode.PartialContent)
+                {
+                    startOffset = existingLength;
+                    streamToWriteTo = File.Open(tempFile, FileMode.Append, FileAccess.Write, FileShare.None);
+                }
+                else
+                {
+                    response.Dispose();
+                    response = await s_httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                    _ = response.EnsureSuccessStatusCode();
+                    streamToWriteTo = File.Open(tempFile, FileMode.Create, FileAccess.Write, FileShare.None);
+                }
+            }
+            else
+            {
+                response = await s_httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                _ = response.EnsureSuccessStatusCode();
+                streamToWriteTo = File.Open(tempFile, FileMode.Create, FileAccess.Write, FileShare.None);
+            }
+
+            using (response)
+            await using (streamToWriteTo)
+            await using (var streamToReadFrom = await response.Content.ReadAsStreamAsync(cancellationToken))
+            {
+                var totalBytes = expectedSize > 0 ? expectedSize : (response.Content.Headers.ContentLength ?? 0L) + startOffset;
+                var buffer = new byte[131072]; // 128 KB
+                var totalRead = startOffset;
+                var lastReportTimestamp = Stopwatch.GetTimestamp();
+
+                int bytesRead;
+                while ((bytesRead = await streamToReadFrom.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken)) > 0)
+                {
+                    await streamToWriteTo.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
+                    totalRead += bytesRead;
+
+                    if (fileProgress != null && Stopwatch.GetElapsedTime(lastReportTimestamp).TotalMilliseconds >= 250)
+                    {
+                        lastReportTimestamp = Stopwatch.GetTimestamp();
+                        fileProgress.Report((totalRead, totalBytes));
+                    }
+                }
+
+                fileProgress?.Report((totalRead, totalBytes));
             }
 
             var tempInfo = new FileInfo(tempFile);
@@ -461,18 +531,23 @@ public static class ModSyncService
 
             File.Move(tempFile, destinationPath);
         }
-        finally
+        catch
         {
             if (File.Exists(tempFile))
             {
-                try
+                var len = new FileInfo(tempFile).Length;
+                if (expectedSize > 0 && len > expectedSize)
                 {
-                    File.Delete(tempFile);
-                }
-                catch
-                {
+                    try
+                    {
+                        File.Delete(tempFile);
+                    }
+                    catch
+                    {
+                    }
                 }
             }
+            throw;
         }
     }
 
