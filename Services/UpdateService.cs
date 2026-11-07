@@ -4,7 +4,7 @@ public static class UpdateService
 {
     private static readonly HttpClient s_httpClient = new()
     {
-        Timeout = TimeSpan.FromSeconds(30),
+        Timeout = TimeSpan.FromMinutes(5),
         DefaultRequestHeaders =
         {
             { "User-Agent", "DevByteLauncher" },
@@ -221,46 +221,95 @@ public static class UpdateService
             }
         }
 
+        // Pre-warm Process.Start and IPC pipe machinery on Linux/macOS BEFORE moving binary.
+        // In .NET Single-File bundles, System.IO.Pipes is loaded lazily from the host binary.
+        // If currentExe is moved or replaced beforehand, Process.StartCore fails with FileNotFoundException.
         if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
         {
             try
             {
-                File.SetUnixFileMode(tempNewExe, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
-                                                UnixFileMode.GroupRead | UnixFileMode.GroupExecute |
-                                                UnixFileMode.OtherRead | UnixFileMode.OtherExecute);
+                _ = typeof(System.IO.Pipes.PipeStream).Assembly;
+                using var warmProc = Process.Start(new ProcessStartInfo
+                {
+                    FileName = "true",
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                });
+                if (warmProc != null)
+                {
+                    await warmProc.WaitForExitAsync(cancellationToken);
+                }
             }
             catch
             {
             }
         }
 
-        if (File.Exists(oldExe))
+        await EnsureExecutablePermissionAsync(tempNewExe, cancellationToken);
+
+        try
         {
-            File.Delete(oldExe);
+            if (File.Exists(oldExe))
+            {
+                File.Delete(oldExe);
+            }
+        }
+        catch
+        {
         }
 
-        File.Move(currentExe, oldExe);
-        File.Move(tempNewExe, currentExe);
+        File.Move(currentExe, oldExe, overwrite: true);
+        File.Move(tempNewExe, currentExe, overwrite: true);
 
-        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
+        await EnsureExecutablePermissionAsync(currentExe, cancellationToken);
+
+        var workingDir = Path.GetDirectoryName(currentExe);
+        if (string.IsNullOrEmpty(workingDir) || !Directory.Exists(workingDir))
         {
-            try
-            {
-                File.SetUnixFileMode(currentExe, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
-                                               UnixFileMode.GroupRead | UnixFileMode.GroupExecute |
-                                               UnixFileMode.OtherRead | UnixFileMode.OtherExecute);
-            }
-            catch
-            {
-            }
+            workingDir = AppContext.BaseDirectory;
         }
 
         _ = Process.Start(new ProcessStartInfo
         {
             FileName = currentExe,
+            WorkingDirectory = workingDir,
             UseShellExecute = OperatingSystem.IsWindows()
         });
 
         Environment.Exit(0);
+    }
+
+    private static async Task EnsureExecutablePermissionAsync(string filePath, CancellationToken cancellationToken = default)
+    {
+        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
+        {
+            try
+            {
+                File.SetUnixFileMode(filePath,
+                    UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                    UnixFileMode.GroupRead | UnixFileMode.GroupExecute |
+                    UnixFileMode.OtherRead | UnixFileMode.OtherExecute);
+            }
+            catch
+            {
+                try
+                {
+                    using var chmod = Process.Start(new ProcessStartInfo
+                    {
+                        FileName = "chmod",
+                        Arguments = $"+x \"{filePath}\"",
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    });
+                    if (chmod != null)
+                    {
+                        await chmod.WaitForExitAsync(cancellationToken);
+                    }
+                }
+                catch
+                {
+                }
+            }
+        }
     }
 }

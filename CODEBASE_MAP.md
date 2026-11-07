@@ -61,7 +61,12 @@ DevByte Launcher — клиентский лаунчер для выделенн
     - `UploadSkinToServerAsync(host, port, nickname, skinFilePath, ct)`: Отправляет PNG-текстуру по HTTP `POST /api/skin/upload?nickname={nickname}` на сервер сборки.
     - `EnsureCustomSkinLoaderConfig(installationPath, host, port)`: Автоматически формирует `CustomSkinLoader/CustomSkinLoader.json` и `ExtraList/devbyte.json` с цепочкой провайдеров DevByte CustomSkinAPI -> MojangAPI -> ElyByAPI.
 - `Services/UpdateService.cs`
-  - **Роль**: Проверка релизов лаунчера через GitHub API.
+  - **Роль**: Проверка релизов лаунчера через GitHub API / 302 Redirect и применение авто-обновлений.
+  - **Ключевые методы**:
+    - `CheckForUpdatesAsync(ct)`: Опрос последнего релиза (Channel 1 через 302-редирект GitHub без лимитов API + Channel 2 REST API fallback).
+    - `ApplyUpdateAsync(update, progress, ct)`: Потоковое скачивание нового бинарника (таймаут 5 мин), pre-warm подсистемы процессов и `System.IO.Pipes` на Linux, выставление прав исполнения, атомарная замена `File.Move(..., overwrite: true)` и перезапуск приложения.
+    - `EnsureExecutablePermissionAsync(filePath, ct)`: Установка `chmod 0755` через `File.SetUnixFileMode` с автоматическим фолбэком на CLI утилиту `chmod`.
+    - `CleanPreviousBinary()`: Удаление оставшегося `.old` файла предыдущей версии при запуске.
 
 ---
 
