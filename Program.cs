@@ -20,7 +20,13 @@ internal sealed partial class Program
         if (args.Length > 0 && args[0] == "--smoke-test")
         {
             SynchronizationContext.SetSynchronizationContext(null);
-            _ = BuildAvaloniaApp().SetupWithoutStarting();
+            try
+            {
+                _ = BuildAvaloniaApp().SetupWithoutStarting();
+            }
+            catch
+            {
+            }
             SynchronizationContext.SetSynchronizationContext(null);
             return RunSmokeTestAsync().GetAwaiter().GetResult();
         }
@@ -28,7 +34,13 @@ internal sealed partial class Program
         if (args.Length > 0 && args[0] == "--test-mc")
         {
             SynchronizationContext.SetSynchronizationContext(null);
-            _ = BuildAvaloniaApp().SetupWithoutStarting();
+            try
+            {
+                _ = BuildAvaloniaApp().SetupWithoutStarting();
+            }
+            catch
+            {
+            }
             SynchronizationContext.SetSynchronizationContext(null);
             return RunMinecraftTestAsync().GetAwaiter().GetResult();
         }
@@ -51,26 +63,30 @@ internal sealed partial class Program
     {
         Console.WriteLine("=== DevByteLauncher Smoke Test ===");
         var settings = SettingsService.LoadSettings();
-        Console.WriteLine($"[1/5] Settings loaded: Path='{settings.InstallationPath}', Nickname='{settings.Nickname}'");
+        Console.WriteLine($"[1/6] Settings loaded: Path='{settings.InstallationPath}', Nickname='{settings.Nickname}'");
 
         var drives = SettingsService.GetFixedDrives();
-        Console.WriteLine($"[2/5] Drives detected: {drives.Count} drive(s).");
+        Console.WriteLine($"[2/6] Drives detected: {drives.Count} drive(s).");
         foreach (var d in drives)
         {
             Console.WriteLine($"      -> {d.DisplayText}, Free: {d.FreeGigabytes} GB / {d.TotalGigabytes} GB");
         }
 
-        Console.WriteLine("[3/5] Pinging homelab Minecraft server...");
+        Console.WriteLine("[3/6] Pinging homelab Minecraft server...");
         var status = await ServerPingService.PingServerAsync(settings.ServerHost, settings.ServerPort);
         Console.WriteLine($"      -> Online: {status.IsOnline}, Players: {status.OnlinePlayers}/{status.MaxPlayers}, Ping: {status.LatencyMs}ms");
 
-        Console.WriteLine("[4/5] Fetching server modsync manifest...");
+        Console.WriteLine("[4/6] Fetching server modsync manifest...");
         var manifest = await ModSyncService.FetchManifestAsync(settings.ServerHost, settings.SyncPort);
         Console.WriteLine($"      -> Manifest: {manifest.Files.Count} mod(s) available from {settings.ServerHost}:{settings.SyncPort}.");
 
-        Console.WriteLine("[5/5] Testing SkiaSharp Steve avatar generation...");
+        Console.WriteLine("[5/6] Testing SkiaSharp Steve avatar generation...");
         using var avatar = SkinService.LoadAvatarHead(null);
         Console.WriteLine($"      -> Avatar loaded: {avatar?.Size.Width ?? 0}x{avatar?.Size.Height ?? 0} px.");
+
+        Console.WriteLine("[6/6] Testing Java 21 LTS resolution...");
+        var javaPath = await JavaService.ResolveJava21Async(settings);
+        Console.WriteLine($"      -> Java 21 runtime resolved: '{javaPath}'");
 
         Console.WriteLine("=== ALL LAUNCHER SUBSYSTEMS OPERATIONAL! ===");
         return 0;

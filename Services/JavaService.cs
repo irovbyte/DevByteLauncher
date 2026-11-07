@@ -1,3 +1,6 @@
+using System.Formats.Tar;
+using System.IO.Compression;
+
 namespace DevByteLauncher.Services;
 
 public static class JavaService
@@ -15,12 +18,14 @@ public static class JavaService
     {
         if (!string.IsNullOrWhiteSpace(settings.CustomJavaPath) && File.Exists(settings.CustomJavaPath))
         {
+            EnsureExecutable(settings.CustomJavaPath);
             return settings.CustomJavaPath;
         }
 
         var localCandidate = Path.Combine(settings.InstallationPath, "runtime", "java-runtime-delta", "bin", OperatingSystem.IsWindows() ? "javaw.exe" : "java");
         if (File.Exists(localCandidate))
         {
+            EnsureExecutable(localCandidate);
             return localCandidate;
         }
 
@@ -43,10 +48,20 @@ public static class JavaService
 
         var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         candidates.Add(Path.Combine(userProfile, "Games", "Minecraft", "jre", "java-runtime-delta", "bin", OperatingSystem.IsWindows() ? "javaw.exe" : "java"));
-        candidates.Add(@"C:\Program Files\Java\jdk-21.0.11\bin\javaw.exe");
+
+        var javaHome = Environment.GetEnvironmentVariable("JAVA_HOME");
+        if (!string.IsNullOrWhiteSpace(javaHome))
+        {
+            var javaHomeBin = Path.Combine(javaHome, "bin", OperatingSystem.IsWindows() ? "javaw.exe" : "java");
+            if (File.Exists(javaHomeBin) && (IsJava21Directory(javaHome) || IsJava21Binary(javaHomeBin)))
+            {
+                candidates.Add(javaHomeBin);
+            }
+        }
 
         if (OperatingSystem.IsWindows())
         {
+            candidates.Add(@"C:\Program Files\Java\jdk-21.0.11\bin\javaw.exe");
             var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
             string[] javaDirs =
             [
@@ -76,11 +91,62 @@ public static class JavaService
                 }
             }
         }
+        else
+        {
+            // Linux & macOS standard JVM search paths
+            string[] jvmRoots =
+            [
+                "/usr/lib/jvm",
+                "/usr/java",
+                "/opt/java",
+                "/opt/jdk",
+                "/usr/local/java",
+                Path.Combine(userProfile, ".jdks"),
+                Path.Combine(userProfile, ".sdkman", "candidates", "java")
+            ];
+
+            foreach (var root in jvmRoots)
+            {
+                if (!Directory.Exists(root))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    foreach (var subDir in Directory.GetDirectories(root, "*21*"))
+                    {
+                        var binJava = Path.Combine(subDir, "bin", "java");
+                        if (File.Exists(binJava))
+                        {
+                            candidates.Add(binJava);
+                        }
+                    }
+
+                    var defaultJavaDir = Path.Combine(root, "default-java");
+                    var defaultJavaBin = Path.Combine(defaultJavaDir, "bin", "java");
+                    if (File.Exists(defaultJavaBin) && IsJava21Directory(defaultJavaDir))
+                    {
+                        candidates.Add(defaultJavaBin);
+                    }
+                }
+                catch
+                {
+                }
+            }
+
+            const string usrBinJava = "/usr/bin/java";
+            if (File.Exists(usrBinJava) && IsJava21Binary(usrBinJava))
+            {
+                candidates.Add(usrBinJava);
+            }
+        }
 
         foreach (var c in candidates)
         {
             if (File.Exists(c))
             {
+                EnsureExecutable(c);
                 return c;
             }
         }
@@ -101,6 +167,7 @@ public static class JavaService
         var javaExe = Path.Combine(javaDeltaDir, "bin", OperatingSystem.IsWindows() ? "javaw.exe" : "java");
         if (File.Exists(javaExe))
         {
+            EnsureExecutable(javaExe);
             return javaExe;
         }
 
@@ -108,7 +175,7 @@ public static class JavaService
         const string linuxUrl = "https://aka.ms/download-jdk/microsoft-jdk-21.0.7-linux-x64.tar.gz";
 
         var url = OperatingSystem.IsWindows() ? winUrl : linuxUrl;
-        var tempArchive = Path.Combine(runtimeDir, "java21_temp.zip");
+        var tempArchive = Path.Combine(runtimeDir, OperatingSystem.IsWindows() ? "java21_temp.zip" : "java21_temp.tar.gz");
 
         try
         {
@@ -147,7 +214,16 @@ public static class JavaService
             }
             _ = Directory.CreateDirectory(extractTemp);
 
-            await Task.Run(() => ZipFile.ExtractToDirectory(tempArchive, extractTemp), cancellationToken);
+            if (OperatingSystem.IsWindows())
+            {
+                await Task.Run(() => ZipFile.ExtractToDirectory(tempArchive, extractTemp), cancellationToken);
+            }
+            else
+            {
+                await using var fs = File.OpenRead(tempArchive);
+                await using var gz = new GZipStream(fs, CompressionMode.Decompress);
+                await TarFile.ExtractToDirectoryAsync(gz, extractTemp, overwriteFiles: true, cancellationToken);
+            }
 
             var rootSubdir = Directory.GetDirectories(extractTemp).FirstOrDefault() ?? extractTemp;
             if (Directory.Exists(javaDeltaDir))
@@ -168,6 +244,19 @@ public static class JavaService
                 }
             }
 
+            EnsureExecutable(javaExe);
+            if (!OperatingSystem.IsWindows())
+            {
+                var binDir = Path.Combine(javaDeltaDir, "bin");
+                if (Directory.Exists(binDir))
+                {
+                    foreach (var file in Directory.EnumerateFiles(binDir))
+                    {
+                        EnsureExecutable(file);
+                    }
+                }
+            }
+
             onLogReceived?.Invoke($"[{DateTime.Now:HH:mm:ss}] Java 21 LTS успешно установлена.");
             return javaExe;
         }
@@ -183,6 +272,83 @@ public static class JavaService
                 {
                 }
             }
+        }
+    }
+
+    private static void EnsureExecutable(string filePath)
+    {
+        if (!OperatingSystem.IsWindows() && File.Exists(filePath))
+        {
+            try
+            {
+                const UnixFileMode execPerms = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                                               UnixFileMode.GroupRead | UnixFileMode.GroupExecute |
+                                               UnixFileMode.OtherRead | UnixFileMode.OtherExecute;
+                File.SetUnixFileMode(filePath, execPerms);
+            }
+            catch
+            {
+            }
+        }
+    }
+
+    private static bool IsJava21Directory(string jdkDir)
+    {
+        try
+        {
+            var releaseFile = Path.Combine(jdkDir, "release");
+            if (File.Exists(releaseFile))
+            {
+                var content = File.ReadAllText(releaseFile);
+                if (content.Contains("JAVA_VERSION=\"21", StringComparison.OrdinalIgnoreCase) ||
+                    content.Contains("JAVA_RUNTIME_VERSION=\"21", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+        }
+        catch
+        {
+        }
+        return false;
+    }
+
+    private static bool IsJava21Binary(string javaPath)
+    {
+        try
+        {
+            var binDir = Path.GetDirectoryName(javaPath);
+            if (!string.IsNullOrEmpty(binDir))
+            {
+                var parentDir = Path.GetDirectoryName(binDir);
+                if (!string.IsNullOrEmpty(parentDir) && IsJava21Directory(parentDir))
+                {
+                    return true;
+                }
+            }
+
+            using var proc = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = javaPath,
+                    Arguments = "-version",
+                    RedirectStandardError = true,
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+            _ = proc.Start();
+            var output = proc.StandardError.ReadToEnd() + " " + proc.StandardOutput.ReadToEnd();
+            _ = proc.WaitForExit(2000);
+            return output.Contains("\"21.", StringComparison.OrdinalIgnoreCase) ||
+                   output.Contains(" 21.", StringComparison.OrdinalIgnoreCase) ||
+                   output.Contains("version 21", StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
         }
     }
 }

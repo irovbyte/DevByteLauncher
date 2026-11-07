@@ -45,11 +45,21 @@ DevByte Launcher — клиентский лаунчер для выделенн
     - `DownloadFileAsync(...)`: Потоковая загрузка чанками по 128 КБ со сторожевым таймером неактивности (15с Inactivity Watchdog против зависших сокетов), атомарной заменой `overwrite: true` и докачкой через заголовок `Range: bytes={len}-`.
   - **Связи**: Вызывается из `MainViewModel.PlayCommand`.
 - `Services/MinecraftLaunchService.cs`
-  - **Роль**: Сборка аргументов запуска Java/Fabric, проверка библиотек и порождение процесса игры.
+  - **Роль**: Сборка аргументов запуска Java/Fabric, проверка библиотек и порождение процесса игры с отслеживанием готовности окна.
+  - **Ключевые методы**:
+    - `LaunchGameAsync(settings, progress, onLog, ct)`: Формирует Fabric-профиль, валидирует `options.txt` и `servers.dat`, скачивает библиотеки CmlLib, запускает процесс игры и отслеживает готовность окна по потоку логов (сигналы LWJGL, OpenAL, Sound engine, Connect).
+    - `WaitForWindowReadyAsync(process, tcs, ct)`: Кроссплатформенное ожидание готовности окна (мгновенный триггер по сигналам лога без 5-минутного таймаута на Linux).
+    - `EnsureFabricProfileAsync(mcPath, mcVer, fabricVer, ct)`: Загрузка JSON-манифеста профиля Fabric Loader с meta.fabricmc.net.
+    - `EnsureServerListEntry(gameDir, name, address)`: Сериализация сервера DevByte Homelab в двоичный формат NBT `servers.dat`.
 - `Services/ServerPingService.cs`
   - **Роль**: Пинг Minecraft-сервера по протоколу Server List Ping (TCP 25565) для отображения онлайна и пинга в UI.
 - `Services/JavaService.cs`
-  - **Роль**: Обнаружение установленных JRE/JDK 17/21 или автоматическая загрузка Adoptium Temurin.
+  - **Роль**: Кроссплатформенное обнаружение установленной Java 21 LTS или автоматическая загрузка и распаковка Microsoft OpenJDK 21 LTS.
+  - **Ключевые методы**:
+    - `ResolveJava21Async(settings, progress, onLog, ct)`: Разрешение пути к Java: пользовательский путь -> локальный рантайм -> системный поиск -> автоматическая установка.
+    - `FindExistingJava21()`: Поиск установленной Java 21: переменная `JAVA_HOME`, реестр Windows (`Program Files`, `Adoptium`, `Microsoft`), системные пути Linux/macOS (`/usr/lib/jvm`, `/usr/java`, `/opt/java`, `/opt/jdk`, `~/.jdks`, `~/.sdkman`, `/usr/bin/java`) с парсингом файлов `release` и `java -version`.
+    - `DownloadAndInstallJava21Async(...)`: Скачивание Microsoft OpenJDK 21 LTS: ZIP для Windows, нативный `.tar.gz` (`GZipStream` + `TarFile`) для Linux/macOS с выставлением прав исполнения 0755 (`chmod +x`).
+    - `EnsureExecutable(filePath)`: Выставление `UnixFileMode` 0755 на Unix-платформах.
 - `Services/AuthService.cs`
   - **Роль**: Microsoft OAuth авторизация и валидация оффлайн никнеймов.
 - `Services/ResourcePackService.cs` & `Services/ShaderService.cs`

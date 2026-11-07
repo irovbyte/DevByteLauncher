@@ -123,7 +123,12 @@ public static class MinecraftLaunchService
                 onLogReceived?.Invoke(args.Data);
 
                 if (args.Data.Contains("Narrator library for", StringComparison.OrdinalIgnoreCase) ||
-                    (args.Data.Contains("OpenAL initialized", StringComparison.OrdinalIgnoreCase) && args.Data.Contains("Sound engine started", StringComparison.OrdinalIgnoreCase)))
+                    args.Data.Contains("OpenAL initialized", StringComparison.OrdinalIgnoreCase) ||
+                    args.Data.Contains("Sound engine started", StringComparison.OrdinalIgnoreCase) ||
+                    args.Data.Contains("Backend library: LWJGL", StringComparison.OrdinalIgnoreCase) ||
+                    args.Data.Contains("LWJGL Version:", StringComparison.OrdinalIgnoreCase) ||
+                    args.Data.Contains("Created: 1024x", StringComparison.OrdinalIgnoreCase) ||
+                    args.Data.Contains("Connecting to", StringComparison.OrdinalIgnoreCase))
                 {
                     _ = windowReadyTcs.TrySetResult(true);
                 }

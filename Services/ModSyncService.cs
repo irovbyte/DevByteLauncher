@@ -413,7 +413,8 @@ public static class ModSyncService
         foreach (var item in manifest.Configs)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var targetPath = Path.Combine(installationPath, item.Path.Replace('/', Path.DirectorySeparatorChar));
+            var relativePath = item.Path.Replace('\\', '/').TrimStart('/');
+            var targetPath = Path.Combine(installationPath, relativePath.Replace('/', Path.DirectorySeparatorChar));
             var targetDir = Path.GetDirectoryName(targetPath);
             if (!string.IsNullOrEmpty(targetDir))
             {
