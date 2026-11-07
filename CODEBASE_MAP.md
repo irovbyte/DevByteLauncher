@@ -1,7 +1,7 @@
 # DevByte Launcher Architecture Map (CODEBASE_MAP.md)
 
 ## Обзор архитектуры
-DevByte Launcher — клиентский лаунчер для выделенного игрового хоумлаба `DEVBYTE` (Fabric 1.20.1) на базе Avalonia UI / .NET 10 (C#). Обеспечивает синхронизацию сборки модов по HTTP через Beam 2 SSH-туннель (`mc.obxodka.one:25566`), аутентификацию (Offline / Microsoft), мониторинг статуса сервера (`mc.obxodka.one:25565`) и запуск игрового клиента с защитой от переполнения накопителей.
+DevByte Launcher — клиентский лаунчер для выделенного игрового хоумлаба `DEVBYTE` (Fabric 1.20.1) на базе Avalonia UI / .NET 10 (C#). Обеспечивает синхронизацию сборки модов, шейдеров и серверных конфигураций/раскладки клавиш по HTTP через Beam 2 SSH-туннель (`mc.obxodka.one:25566`), аутентификацию (Offline / Microsoft), мониторинг статуса сервера (`mc.obxodka.one:25565`) и запуск игрового клиента с защитой от переполнения накопителей.
 
 ---
 
@@ -15,7 +15,7 @@ DevByte Launcher — клиентский лаунчер для выделенн
   - **Ключевые поля**: `Name`, `VolumeLabel`, `TotalGigabytes`, `FreeGigabytes`, `IsSystemDrive`.
 - `Models/ModManifest.cs`
   - **Роль**: Модель манифеста сборки сервера.
-  - **Ключевые поля**: `Version`, `FabricLoaderVersion`, `Files`, `ResourcePacks`, `ShaderPacks`, `ModManifestItem` (Name, Path, Url, Size, Sha1).
+  - **Ключевые поля**: `Version`, `FabricLoaderVersion`, `Files`, `ResourcePacks`, `ShaderPacks`, `Configs` (централизованные конфигурации с сервера), `ModManifestItem` (Name, Path, Url, Size, Sha1).
 - `Models/ServerStatusInfo.cs`
   - **Роль**: Состояние Minecraft-сервера для верхнего статус-бара.
   - **Ключевые поля**: `IsOnline`, `PlayerCount`, `MaxPlayers`, `LatencyMs`, `StatusDisplay`.
@@ -34,11 +34,13 @@ DevByte Launcher — клиентский лаунчер для выделенн
     - `GetDriveForPath(string path)`: Возвращает `DriveStorageInfo` для заданного пути.
   - **Связи**: Используется в `MainViewModel`.
 - `Services/ModSyncService.cs`
-  - **Роль**: Высокопроизводительная синхронизация модов, шейдеров и ресурспаков по HTTP.
+  - **Роль**: Высокопроизводительная синхронизация модов, шейдеров, ресурспаков и конфигураций по HTTP.
   - **Ключевые методы**:
     - `FetchManifestAsync(host, port, ct)`: Запрашивает `http://{host}:{port}/manifest.json` (таймаут 15с, 2 попытки).
     - `SyncModsAsync(installationPath, manifest, progress, ct)`: Удаляет запрещенные серверные моды (`c2me`, `chunky`, `easyauth`), чистит лишние jar, скачивает недостающие моды параллельно с проверкой SHA-1 и потоковым отображением МБ.
     - `SyncResourcePacksAsync(...)` & `SyncShaderPacksAsync(...)`: Догружает текстуры и шейдеры.
+    - `SyncConfigsAsync(installationPath, manifest, progress, ct)`: Синхронизирует серверные конфигурации и раскладку клавиш (`config/defaultoptions/keybindings.txt`).
+    - `ApplyKeybindingsToOptions(installationPath, keybindingsFilePath)`: Сливает эталонную раскладку сервера в клиентский `options.txt` (зум на C, атака на ЛКМ).
     - `DownloadWithRetryAsync(...)`: Скачивание с проверкой размера, SHA1, HTTP Range докачкой и потоковым `fileProgress`.
     - `DownloadFileAsync(...)`: Потоковая загрузка чанками по 128 КБ с поддержкой докачки поврежденных/оборванных `.tmp` файлов через заголовок `Range: bytes={len}-`.
   - **Связи**: Вызывается из `MainViewModel.PlayCommand`.
@@ -71,6 +73,6 @@ DevByte Launcher — клиентский лаунчер для выделенн
 ---
 
 ## 4. Векторные потоки данных
-- **Запуск игры**: `PlayCommand` -> `ModSyncService.FetchManifestAsync` -> `ModSyncService.SyncModsAsync` (с Range и байтовым прогрессом) -> `Resource/Shader Sync` -> `MinecraftLaunchService.LaunchAsync`.
+- **Запуск игры**: `PlayCommand` -> `ModSyncService.FetchManifestAsync` -> `ModSyncService.SyncModsAsync` -> `Resource/Shader Sync` -> `Config/Keybind Sync` -> `MinecraftLaunchService.LaunchAsync`.
 - **Фоновый опрос**: Таймер 15с -> `ServerPingService.PingServerAsync` -> `ServerStatus`.
-- **Серверный HTTP демон**: DEVBYTE `192.168.1.3:25566` (`sync_server.py`, таймаут 300с, HTTP 206 Partial Content / `Range: bytes`, буфер 256 КБ).
+- **Серверный HTTP демон**: DEVBYTE `192.168.1.3:25566` (`sync_server.py`, таймаут 300с, HTTP 206 Partial Content / `Range: bytes`, раздача модов, ресурспаков, шейдеров и `configs/defaultoptions/keybindings.txt`).

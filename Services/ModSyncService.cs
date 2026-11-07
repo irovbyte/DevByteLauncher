@@ -397,6 +397,133 @@ public static class ModSyncService
         return true;
     }
 
+    public static async Task<bool> SyncConfigsAsync(
+        string installationPath,
+        ModManifest manifest,
+        IProgress<(string message, double percentage)>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (manifest.Configs.Count == 0)
+        {
+            return true;
+        }
+
+        foreach (var item in manifest.Configs)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var targetPath = Path.Combine(installationPath, item.Path.Replace('/', Path.DirectorySeparatorChar));
+            var targetDir = Path.GetDirectoryName(targetPath);
+            if (!string.IsNullOrEmpty(targetDir))
+            {
+                _ = Directory.CreateDirectory(targetDir);
+            }
+
+            var needsDownload = false;
+            if (!File.Exists(targetPath))
+            {
+                needsDownload = true;
+            }
+            else
+            {
+                var fileInfo = new FileInfo(targetPath);
+                if (item.Size > 0 && fileInfo.Length != item.Size)
+                {
+                    needsDownload = true;
+                }
+                else if (!string.IsNullOrEmpty(item.Sha1))
+                {
+                    var localSha1 = CalculateSha1(targetPath);
+                    if (!string.Equals(localSha1, item.Sha1, StringComparison.OrdinalIgnoreCase))
+                    {
+                        needsDownload = true;
+                    }
+                }
+            }
+
+            if (needsDownload)
+            {
+                progress?.Report(($"Синхронизация конфигурации: {item.Name}...", 95));
+                await DownloadWithRetryAsync(item.Url, targetPath, item.Size, item.Sha1, 3, cancellationToken);
+            }
+
+            if (item.Name.Equals("keybindings.txt", StringComparison.OrdinalIgnoreCase) && File.Exists(targetPath))
+            {
+                ApplyKeybindingsToOptions(installationPath, targetPath);
+            }
+        }
+
+        progress?.Report(("Конфигурации успешно синхронизированы!", 100));
+        return true;
+    }
+
+    public static void ApplyKeybindingsToOptions(string installationPath, string keybindingsFilePath)
+    {
+        try
+        {
+            if (!File.Exists(keybindingsFilePath))
+            {
+                return;
+            }
+
+            var optionsPath = Path.Combine(installationPath, "options.txt");
+            var keyLines = File.ReadAllLines(keybindingsFilePath)
+                .Where(line => line.StartsWith("key_", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (keyLines.Count == 0)
+            {
+                return;
+            }
+
+            if (!File.Exists(optionsPath))
+            {
+                File.WriteAllLines(optionsPath, keyLines);
+                return;
+            }
+
+            var optionsLines = File.ReadAllLines(optionsPath);
+            var optionsMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var otherLines = new List<string>();
+
+            foreach (var line in optionsLines)
+            {
+                var separatorIndex = line.IndexOf(':');
+                if (separatorIndex > 0 && line.StartsWith("key_", StringComparison.OrdinalIgnoreCase))
+                {
+                    var key = line[..separatorIndex];
+                    var value = line[(separatorIndex + 1)..];
+                    optionsMap[key] = value;
+                }
+                else
+                {
+                    otherLines.Add(line);
+                }
+            }
+
+            foreach (var line in keyLines)
+            {
+                var separatorIndex = line.IndexOf(':');
+                if (separatorIndex > 0)
+                {
+                    var key = line[..separatorIndex];
+                    var value = line[(separatorIndex + 1)..];
+                    optionsMap[key] = value;
+                }
+            }
+
+            var resultLines = new List<string>(otherLines);
+            foreach (var kvp in optionsMap.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
+            {
+                resultLines.Add($"{kvp.Key}:{kvp.Value}");
+            }
+
+            File.WriteAllLines(optionsPath, resultLines);
+        }
+        catch
+        {
+        }
+    }
+
     public static async Task<bool> SyncAllAsync(
         string installationPath,
         ModManifest manifest,
@@ -406,14 +533,17 @@ public static class ModSyncService
         progress?.Report(("Синхронизация модов сборки...", 10));
         var modsOk = await SyncModsAsync(installationPath, manifest, progress, cancellationToken);
 
-        progress?.Report(("Синхронизация ресурспаков...", 50));
+        progress?.Report(("Синхронизация ресурспаков...", 40));
         var rpOk = await SyncResourcePacksAsync(installationPath, manifest, progress, cancellationToken);
 
-        progress?.Report(("Синхронизация шейдерпаков...", 80));
+        progress?.Report(("Синхронизация шейдерпаков...", 70));
         var spOk = await SyncShaderPacksAsync(installationPath, manifest, progress, cancellationToken);
 
+        progress?.Report(("Синхронизация конфигураций...", 90));
+        var cfgOk = await SyncConfigsAsync(installationPath, manifest, progress, cancellationToken);
+
         progress?.Report(("Синхронизация сборки успешно завершена!", 100));
-        return modsOk && rpOk && spOk;
+        return modsOk && rpOk && spOk && cfgOk;
     }
 
     public static async Task DownloadWithRetryAsync(

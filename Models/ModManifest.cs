@@ -22,6 +22,9 @@ public class ModManifest
 
     [JsonPropertyName("shaderPacks")]
     public List<ModManifestItem> ShaderPacks { get; set; } = [];
+
+    [JsonPropertyName("configs")]
+    public List<ModManifestItem> Configs { get; set; } = [];
 }
 
 public class ModManifestItem

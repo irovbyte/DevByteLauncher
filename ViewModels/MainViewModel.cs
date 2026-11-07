@@ -1096,6 +1096,17 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
                 IsShadersSyncing = false;
             }
 
+            AddLog($"[{DateTime.Now:HH:mm:ss}] [CONFIG] Синхронизация серверных настроек и раскладки клавиш...");
+            try
+            {
+                _ = await ModSyncService.SyncConfigsAsync(Settings.InstallationPath, manifest, progress, _cts.Token);
+                AddLog($"[{DateTime.Now:HH:mm:ss}] [CONFIG] Раскладка клавиш и конфигурации успешно синхронизированы.");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"[{DateTime.Now:HH:mm:ss}] [WARN] Пропуск синхронизации конфигураций: {ex.Message}");
+            }
+
             StatusMessage = $"Подготовка к запуску Fabric {Settings.MinecraftVersion}...";
             var process = await MinecraftLaunchService.LaunchGameAsync(Settings, progress, AddLog, _cts.Token);
 
