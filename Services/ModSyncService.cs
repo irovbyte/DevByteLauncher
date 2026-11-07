@@ -6,7 +6,9 @@ public static class ModSyncService
 {
     private static readonly SocketsHttpHandler s_handler = new()
     {
-        PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+        ConnectTimeout = TimeSpan.FromSeconds(15),
+        PooledConnectionLifetime = TimeSpan.FromMinutes(2),
+        PooledConnectionIdleTimeout = TimeSpan.FromSeconds(30),
         MaxConnectionsPerServer = 32
     };
 
@@ -170,7 +172,7 @@ public static class ModSyncService
 
                 try
                 {
-                    await DownloadWithRetryAsync(entry.item.Url, entry.targetPath, entry.item.Size, entry.item.Sha1, 3, ct, fileProgress);
+                    await DownloadWithRetryAsync(entry.item.Url, entry.targetPath, entry.item.Size, entry.item.Sha1, 5, ct, fileProgress);
                 }
                 catch (Exception)
                 {
@@ -277,7 +279,7 @@ public static class ModSyncService
             {
                 try
                 {
-                    await DownloadWithRetryAsync(entry.item.Url, entry.targetPath, entry.item.Size, entry.item.Sha1, 3, ct);
+                    await DownloadWithRetryAsync(entry.item.Url, entry.targetPath, entry.item.Size, entry.item.Sha1, 5, ct);
                 }
                 catch
                 {
@@ -379,7 +381,7 @@ public static class ModSyncService
             {
                 try
                 {
-                    await DownloadWithRetryAsync(entry.item.Url, entry.targetPath, entry.item.Size, entry.item.Sha1, 3, ct);
+                    await DownloadWithRetryAsync(entry.item.Url, entry.targetPath, entry.item.Size, entry.item.Sha1, 5, ct);
                 }
                 catch
                 {
@@ -443,7 +445,7 @@ public static class ModSyncService
             if (needsDownload)
             {
                 progress?.Report(($"Синхронизация конфигурации: {item.Name}...", 95));
-                await DownloadWithRetryAsync(item.Url, targetPath, item.Size, item.Sha1, 3, cancellationToken);
+                await DownloadWithRetryAsync(item.Url, targetPath, item.Size, item.Sha1, 5, cancellationToken);
             }
 
             if (item.Name.Equals("keybindings.txt", StringComparison.OrdinalIgnoreCase) && File.Exists(targetPath))
@@ -623,9 +625,26 @@ public static class ModSyncService
                 var totalRead = startOffset;
                 var lastReportTimestamp = Stopwatch.GetTimestamp();
 
-                int bytesRead;
-                while ((bytesRead = await streamToReadFrom.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken)) > 0)
+                while (true)
                 {
+                    using var readCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                    readCts.CancelAfter(TimeSpan.FromSeconds(15));
+
+                    int bytesRead;
+                    try
+                    {
+                        bytesRead = await streamToReadFrom.ReadAsync(buffer.AsMemory(0, buffer.Length), readCts.Token);
+                    }
+                    catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+                    {
+                        throw new TimeoutException($"Таймаут передачи данных: поток не отвечает более 15 секунд при загрузке {Path.GetFileName(destinationPath)}");
+                    }
+
+                    if (bytesRead == 0)
+                    {
+                        break;
+                    }
+
                     await streamToWriteTo.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
                     totalRead += bytesRead;
 
@@ -654,12 +673,18 @@ public static class ModSyncService
                 }
             }
 
-            if (File.Exists(destinationPath))
+            try
             {
-                File.Delete(destinationPath);
+                if (File.Exists(destinationPath))
+                {
+                    File.Delete(destinationPath);
+                }
+            }
+            catch
+            {
             }
 
-            File.Move(tempFile, destinationPath);
+            File.Move(tempFile, destinationPath, overwrite: true);
         }
         catch
         {

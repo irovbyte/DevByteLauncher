@@ -41,8 +41,8 @@ DevByte Launcher — клиентский лаунчер для выделенн
     - `SyncResourcePacksAsync(...)` & `SyncShaderPacksAsync(...)`: Догружает текстуры и шейдеры.
     - `SyncConfigsAsync(installationPath, manifest, progress, ct)`: Синхронизирует серверные конфигурации и раскладку клавиш (`config/defaultoptions/keybindings.txt`).
     - `ApplyKeybindingsToOptions(installationPath, keybindingsFilePath)`: Сливает эталонную раскладку сервера в клиентский `options.txt` (зум на C, атака на ЛКМ).
-    - `DownloadWithRetryAsync(...)`: Скачивание с проверкой размера, SHA1, HTTP Range докачкой и потоковым `fileProgress`.
-    - `DownloadFileAsync(...)`: Потоковая загрузка чанками по 128 КБ с поддержкой докачки поврежденных/оборванных `.tmp` файлов через заголовок `Range: bytes={len}-`.
+    - `DownloadWithRetryAsync(...)`: Скачивание с проверкой размера, SHA1, HTTP Range докачкой (до 5 попыток) и потоковым `fileProgress`.
+    - `DownloadFileAsync(...)`: Потоковая загрузка чанками по 128 КБ со сторожевым таймером неактивности (15с Inactivity Watchdog против зависших сокетов), атомарной заменой `overwrite: true` и докачкой через заголовок `Range: bytes={len}-`.
   - **Связи**: Вызывается из `MainViewModel.PlayCommand`.
 - `Services/MinecraftLaunchService.cs`
   - **Роль**: Сборка аргументов запуска Java/Fabric, проверка библиотек и порождение процесса игры.
